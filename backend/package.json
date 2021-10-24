@@ -1,0 +1,38 @@
+{
+  "name": "wabisque-webapp-template-backend",
+  "version": "0.1.0",
+  "private": true,
+  "main": "www/production.js",
+  "scripts": {
+    "serve": "nodemon www/development.js",
+    "start": "node www/production.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cluster": "^0.7.7",
+    "cors": "^2.8.5",
+    "crypto": "^1.0.1",
+    "dotenv": "^10.0.0",
+    "express": "^4.17.1",
+    "fastest-validator": "^1.11.1",
+    "jsonwebtoken": "^8.5.1",
+    "mariadb": "^2.5.4",
+    "mitt": "^3.0.0",
+    "moment": "^2.29.1",
+    "mysql2": "^2.3.0",
+    "nodemailer": "^6.7.0",
+    "pg": "^8.7.1",
+    "pg-hstore": "^2.3.4",
+    "sequelize": "^6.6.5",
+    "socket.io": "^4.2.0",
+    "sqlite3": "^5.0.2",
+    "tedious": "^13.1.0"
+  },
+  "devDependencies": {
+    "morgan": "^1.10.0",
+    "nodemon": "^2.0.13",
+    "sequelize-cli": "^6.2.0"
+  }
+}
