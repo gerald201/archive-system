@@ -1,7 +1,7 @@
 const { Model } = require('sequelize');
 
 function main(sequelize, DataTypes) {
-  class StudentData extends Model {
+  class Project extends Model {
     static associate(models) {
       this.belongsTo(models.User, {
         as: 'user',
@@ -10,18 +10,17 @@ function main(sequelize, DataTypes) {
     }
   }
 
-  StudentData.init({
-    firstName: DataTypes.STRING,
-    lastName: DataTypes.STRING,
-    programId: DataTypes.INTEGER,
+  Project.init({
+    name: DataTypes.STRING,
+    file: DataTypes.STRING,
     userId: DataTypes.INTEGER
   }, {
     sequelize,
-    modelName: 'StudentData',
+    modelName: 'Project',
     paranoid: true
   });
-  
-  return StudentData;
+
+  return Project;
 }
 
 module.exports = main;

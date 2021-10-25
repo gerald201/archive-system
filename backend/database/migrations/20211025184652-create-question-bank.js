@@ -1,24 +1,28 @@
 async function down(queryInterface, Sequelize) {
-  await queryInterface.dropTable('StudentData');
+  await queryInterface.dropTable('QuestionBanks');
 }
 
 async function up(queryInterface, Sequelize) {
-  await queryInterface.createTable('StudentData', {
+  await queryInterface.createTable('QuestionBanks', {
     id: {
       allowNull: false,
       autoIncrement: true,
       primaryKey: true,
       type: Sequelize.INTEGER
     },
-    firstName: {
-      allowNull: true,
+    level: {
+      allowNull: false,
+      type: Sequelize.ENUM('100', '200', '300', '400')
+    },
+    semister: {
+      allowNull: false,
+      type: Sequelize.ENUM('first', 'second')
+    },
+    file: {
+      allowNull: false,
       type: Sequelize.STRING
     },
-    lastName: {
-      allowNull: true,
-      type: Sequelize.STRING
-    },
-    userId: {
+    programId: {
       allowNull: false,
       type: Sequelize.INTEGER
     },

@@ -2,6 +2,7 @@ const models = require('../../../../database/models');
 const { checkWithHashAndSalt, createHashAndSalt } = require('../../../../services/crypto');
 const { checkJWTToken, createJWTToken } = require('../../../../services/jwt');
 const authenticationGuard = require('../../guards/authentication');
+const validationGuard = require('../../guards/validation');
 
 function refresh() {
   return [
@@ -36,37 +37,22 @@ function refresh() {
 
 function signIn() {
   return [
-    function(request, response, next) {
-      const schema = {
-        $$strict: 'remove',
-        emailOrUsername: {
-          type: 'string',
-          empty: false
-        },
-        password: {
-          type: 'string',
-          empty: false
-        }
-      };
-      const validated = request.validate(schema);
-
-      if(validated !== true) {
-        return next({
-          name: 'invalidRequestBody',
-          error: validated
-        });
+    validationGuard({
+      $$strict: 'remove',
+      index: {
+        type: 'string',
+        empty: false
+      },
+      password: {
+        type: 'string',
+        empty: false
       }
-
-      return next();
-    },
+    }),
     async function(request, response, next) {
       try {
         const user = await models.User.findOne({
           where: {
-            [models.Sequelize.Op.or]: [
-              {email: request.body.emailOrUsername},
-              {username: request.body.emailOrUsername}
-            ]
+            index: request.body.index
           }
         });
   
@@ -124,92 +110,6 @@ function signOut() {
   ]
 }
 
-function signUp() {
-  return [
-    function(request, response, next) {
-      const schema = {
-        $$strict: 'remove',
-        email: {
-          type: 'email',
-          empty: 'false',
-          min: 3
-        },
-        password: {
-          type: 'string',
-          empty: false,
-          min: 6,
-          pattern: /^.*(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9]).*$/,
-          messages: {
-            stringPattern: 'The \'{field}\' field must have at least one lowercase letter, one uppercase letter and one digit.'
-          }
-        },
-        confirmPassword: {
-          type: 'equal',
-          field: 'password'
-        }
-      };
-      const validated = request.validate(schema);
-
-      if(validated !== true) {
-        return next({
-          name: 'invalidRequestBody',
-          error: validated
-        });
-      }
-
-      return next();
-    },
-    async function(request, response, next) {
-      try {
-        const existingUser = await models.User.findOne({
-          where: {email: request.body.email}
-        });
-
-        if(existingUser) return next({name: 'uniqueUserViolation'});
-
-        await models.VerifiedEmail.destroy({
-          where: {email: request.body.email}
-        });
-
-        const passwordHashAndSalt = createHashAndSalt(request.body.password);
-        const user = await models.User.create({
-          email: request.body.email,
-          hash: passwordHashAndSalt.hash,
-          salt: passwordHashAndSalt.salt
-        });
-
-        await user.reload();
-        await user.addRole(await models.Role.findOne({
-          where: {name: 'consumer'}
-        }));
-
-        const accessToken = await createJWTToken('access', user.id);
-        const refreshToken = await createJWTToken('refresh', user.id);
-        const responseData = {
-          title: 'Sign Up Successful.',
-          message: 'User has been successfully signed up.',
-          data: {
-            token: {
-              access: accessToken,
-              refresh: refreshToken
-            },
-            user: await user.toAPIData()
-          }
-        };
-
-        return response
-          .status(201)
-          .send(responseData);
-      } catch(error) {
-        return next({
-          name: 'serverError',
-          error
-        });
-      }
-    }
-  ];
-}
-
 function whoami() {
   return [
     authenticationGuard(),
@@ -236,6 +136,5 @@ module.exports = {
   refresh,
   signIn,
   signOut,
-  signUp,
   whoami
 };

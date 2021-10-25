@@ -9,7 +9,6 @@ function main(sequelize, DataTypes) {
           singular: 'role'
         },
         foreignKey: 'userId',
-        hooks: true,
         otherKey: 'roleId',
         through: models.RoleUser
       });
@@ -19,10 +18,15 @@ function main(sequelize, DataTypes) {
           plural: 'accessTokens',
           singular: 'accessToken'
         },
-        foreignKey: 'userId',
-        hooks: true,
-        onDelete: 'cascade',
-        onUpdate: 'cascade'
+        foreignKey: 'userId'
+      });
+
+      this.hasMany(models.Project, {
+        as: {
+          plural: 'project',
+          singular: 'projects'
+        },
+        foreignKey: 'userId'
       });
 
       this.hasMany(models.RefreshToken, {
@@ -30,32 +34,13 @@ function main(sequelize, DataTypes) {
           plural: 'refreshTokens',
           singular: 'refreshToken'
         },
-        foreignKey: 'userId',
-        hooks: true,
-        onDelete: 'cascade',
-        onUpdate: 'cascade'
+        foreignKey: 'userId'
       });
 
       this.hasOne(models.StudentData, {
         as: 'studentData',
         foreignKey: 'userId'
       });
-    }
-
-    async destroyAllAccessTokens() {
-      const tokens = await this.getAccessTokens();
-
-      for(const token of tokens) {
-        await token.destroy();
-      }
-    }
-
-    async destroyAllRefreshTokens() {
-      const tokens = await this.getRefreshTokens();
-
-      for(const token of tokens) {
-        await token.destroy();
-      }
     }
 
     async revokeAllAccessTokens() {
@@ -84,6 +69,14 @@ function main(sequelize, DataTypes) {
       for(const key in this.toJSON()) {
         if(hidden.includes(key)) delete data[key];
       }
+
+      const studentData = await this.getStudentData();
+
+      if(studentData) data.StudentData = studentData;
+
+      const roles = await this.getRoles();
+
+      if(roles.length) data.Roles = roles;
       
       return data;
     }
@@ -96,15 +89,7 @@ function main(sequelize, DataTypes) {
   }, {
     sequelize,
     modelName: 'User',
-    paranoid: true,
-    hooks: {
-      async beforeDestroy(user) {
-        await user.destroyAllAccessTokens();
-        await user.destroyAllRefreshTokens();
-
-        await user.setRoles([]);
-      }
-    }
+    paranoid: true
   });
   
   return User;
