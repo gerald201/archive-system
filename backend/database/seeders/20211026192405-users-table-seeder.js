@@ -5,7 +5,12 @@ const users = [
   {
     index: 'super_admin',
     password: 'suP3r4dm1N',
-    __roles: ['super_administrator']
+    Roles: ['super_administrator'],
+    UserProfile: {
+      firstName: 'Super',
+      lastName: 'Admin'
+    },
+    UserProfileType: 'staff'
   }
 ];
 
@@ -21,6 +26,9 @@ async function down(queryInterface, Sequelize) {
   }
 
   await queryInterface.bulkDelete('RoleUsers', {
+    userId: {[Sequelize.Op.in]: userIds}
+  }, {});
+  await queryInterface.bulkDelete('UserProfiles', {
     userId: {[Sequelize.Op.in]: userIds}
   }, {});
   await queryInterface.bulkDelete('Users', {
@@ -47,9 +55,12 @@ async function up(queryInterface, Sequelize) {
     const userId = await queryInterface.rawSelect('Users', {
       where: {index: user.index}
     }, ['id']);
+    const userProfileTypeId = await queryInterface.rawSelect('UserProfileTypes', {
+      where: {name: user.UserProfileType}
+    }, ['id']);
     const roleIds = [];
 
-    for(const role of user.__roles) {
+    for(const role of user.Roles) {
       const id = await queryInterface.rawSelect('Roles', {
         where: {name: role}
       }, ['id']);
@@ -57,6 +68,15 @@ async function up(queryInterface, Sequelize) {
       if(typeof id == 'number') roleIds.push(id);
     }
 
+    await queryInterface.bulkInsert('UserProfiles', [
+      {
+        ...user.UserProfile,
+        userId,
+        userProfileTypeId,
+        createdAt: moment().toDate(),
+        updatedAt: moment().toDate()
+      }
+    ], {});
     await queryInterface.bulkInsert('RoleUsers', roleIds
       .map(function(roleId) {
         return {

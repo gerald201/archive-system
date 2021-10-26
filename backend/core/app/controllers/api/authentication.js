@@ -70,7 +70,7 @@ function signIn() {
               access: accessToken,
               refresh: refteshToken
             },
-            user: await user.toAPIData()
+            user: await user.toDescriptiveJSON()
           }
         };
 
@@ -90,8 +90,18 @@ function signOut() {
     authenticationGuard(),
     async function(request, response, next) {
       try {
-        await request.user.revokeAllAccessTokens();
-        await request.user.revokeAllRefreshTokens();
+        await models.AccessToken.update({revokedAt: moment().format()}, {
+          where: {
+            revokedAt: null,
+            userId: request.user.id
+          }
+        });
+        await models.RefreshToken.update({revokedAt: moment().format()}, {
+          where: {
+            revokedAt: null,
+            userId: request.user.id
+          }
+        });
 
         const responseData = {
           title: 'Sign Out Successful.',
@@ -118,7 +128,7 @@ function whoami() {
         const responseData = {
           title: 'User Retrieval Successful.',
           message: 'User data has been successfully retrieved.',
-          data: {user: await request.user.toAPIData()}
+          data: {user: await request.user.toDescriptiveJSON()}
         };
 
         return response.send(responseData);

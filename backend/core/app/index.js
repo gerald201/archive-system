@@ -3,6 +3,7 @@ const express = require('express');
 const error = require('./error');
 const fallback = require('./fallback');
 const activityLogMiddleware = require('./middleware/activity-log');
+const formDataParser = require('./middleware/form-data-parser');
 const validatorMiddleware = require('./middleware/validator');
 const router = require('./router');
 
@@ -18,12 +19,13 @@ app.use(express.json());
 app.use(express.urlencoded({extended: true}));
 
 // Custom Middleware
+app.use(formDataParser());
 app.use(activityLogMiddleware());
 app.use(validatorMiddleware());
 
 // Static Middleware
 app.use('/assets', express.static('../../public'));
-app.use('/storage', express.static('../../storage'));
+app.use('/uploads', express.static('../../storage/uploads'));
 
 router(app);
 fallback(app);

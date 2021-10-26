@@ -37,47 +37,39 @@ function main(sequelize, DataTypes) {
         foreignKey: 'userId'
       });
 
-      this.hasOne(models.StudentData, {
-        as: 'studentData',
+      this.hasOne(models.UserProfile, {
+        as: 'userProfile',
         foreignKey: 'userId'
       });
     }
 
-    async revokeAllAccessTokens() {
-      const tokens = await this.getAccessTokens();
-
-      for(const token of tokens) {
-        await token.revoke();
-      }
-    }
-
-    async revokeAllRefreshTokens() {
-      const tokens = await this.getRefreshTokens();
-
-      for(const token of tokens) {
-        await token.revoke();
-      }
-    }
-
-    async toAPIData() {
-      const hidden = [
+    async toDescriptiveJSON() {
+      const data = this.toJSON();
+      const ignored = [
         'hash',
         'salt'
       ];
-      const data = this.toJSON();
-
-      for(const key in this.toJSON()) {
-        if(hidden.includes(key)) delete data[key];
-      }
-
-      const studentData = await this.getStudentData();
-
-      if(studentData) data.StudentData = studentData;
-
+      const userProfile = await this.getUserProfile();
       const roles = await this.getRoles();
 
-      if(roles.length) data.Roles = roles;
-      
+      for(const key of ignored) {
+        delete data[key];
+      }
+
+      if(userProfile) {
+        const userProfileType = await userProfile.getUserProfileType();
+
+        data.UserProfile = userProfile.toJSON();
+        data.UserProfile.UserProfileType = userProfileType.toJSON();
+      }
+
+      if(roles.length) {
+        data.Roles = roles
+          .map(function(role) {
+            return role.toJSON();
+          });
+      }
+
       return data;
     }
   }

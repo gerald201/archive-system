@@ -32,7 +32,6 @@ function create() {
         if(existingStudent) return next({name: 'uniqueUserViolation'});
   
         const passwordHashAndSalt = createHashAndSalt(request.body.index);
-  
         const student = await models.User.create({
           index: request.body.index,
           ...passwordHashAndSalt
@@ -42,16 +41,19 @@ function create() {
         await student.addRole(await models.Role.findOne({
           where: {name: 'student'}
         }));
-        await student.createStudentData({
+        await student.createUserProfile({
           firstName: request.body.firstName,
-          lastName: request.body.lastName
+          lastName: request.body.lastName,
+          userProfileTypeId: (await models.UserProfileType.findOne({
+            where: {name: 'student'}
+          })).id
         });
   
         const responseData = {
           title: 'Student Created Successfully.',
           message: 'A new student has been successfully created.',
           data: {
-            student: await student.toAPIData()
+            student: await student.toDescriptiveJSON()
           }
         };
   
@@ -73,7 +75,12 @@ function index() {
     roleGuard({allowed: 'super_admin'}),
     async function(request, response, next) {
       try {
-        const studentDatas = await models.StudentData.findAll({
+        const studentDatas = await models.UserProfile.findAll({
+          where: {
+            userProfileTypeId: (await models.UserProfileType.findOne({
+              where: {name: 'student'}
+            })).id
+          },
           attributes: ['userId']
         });
         const students = [];
@@ -81,7 +88,7 @@ function index() {
         for(const studentData of studentDatas) {
           const student = await models.User.findByPk(studentData.userId);
 
-          students.push(await student.toAPIData());
+          students.push(await student.toDescriptiveJSON());
         }
 
         const responseData = {

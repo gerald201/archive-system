@@ -1,30 +1,28 @@
 const { Model } = require('sequelize');
 
 function main(sequelize, DataTypes) {
-  class Role extends Model {
+  class Level extends Model {
     static associate(models) {
-      this.belongsToMany(models.User, {
+      this.hasMany(models.QuestionBank, {
         as: {
-          plural: 'users',
-          singular: 'user'
+          plural: 'questionBanks',
+          singular: 'questionBank'
         },
-        foreignKey: 'roleId',
-        otherKey: 'userId',
-        through: models.RoleUser
+        foreignKey: 'levelId'
       });
     }
   }
 
-  Role.init({
+  Level.init({
     name: DataTypes.STRING,
     description: DataTypes.STRING
   }, {
     sequelize,
-    modelName: 'Role',
+    modelName: 'Level',
     paranoid: true
   });
-  
-  return Role;
+
+  return Level;
 }
 
 module.exports = main;

@@ -1,4 +1,3 @@
-const moment = require('moment');
 const { Model } = require('sequelize');
 
 function main(sequelize, DataTypes) {
@@ -9,11 +8,7 @@ function main(sequelize, DataTypes) {
         foreignKey: 'userId'
       });
     }
-
-    async revoke() {
-      if(!this.revokedAt) await this.update({revokedAt: moment().format()});
-    }
-  }
+  } 
 
   AccessToken.init({
     expiresAt: DataTypes.DATE,

@@ -1,9 +1,9 @@
 async function down(queryInterface, Sequelize) {
-  await queryInterface.dropTable('Programs');
+  await queryInterface.dropTable('Semesters');
 }
 
 async function up(queryInterface, Sequelize) {
-  await queryInterface.createTable('Programs', {
+  await queryInterface.createTable('Semesters', {
     id: {
       allowNull: false,
       autoIncrement: true,
@@ -12,7 +12,8 @@ async function up(queryInterface, Sequelize) {
     },
     name: {
       allowNull: false,
-      type: Sequelize.STRING
+      type: Sequelize.STRING,
+      unique: true
     },
     description: {
       allowNull: true,

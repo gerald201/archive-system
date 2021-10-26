@@ -1,4 +1,3 @@
-const moment = require('moment');
 const { Model } = require('sequelize');
 
 function main(sequelize, DataTypes) {
@@ -8,10 +7,6 @@ function main(sequelize, DataTypes) {
         as: 'user',
         foreignKey: 'userId'
       });
-    }
-
-    async revoke() {
-      if(!this.revokedAt) await this.update({revokedAt: moment().format()});
     }
   }
 

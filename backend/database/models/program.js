@@ -3,6 +3,14 @@ const { Model } = require('sequelize');
 function main(sequelize, DataTypes) {
   class Program extends Model {
     static associate(models) {
+      this.hasMany(models.Project, {
+        as: {
+          plural: 'projects',
+          singular: 'project'
+        },
+        foreignKey: 'programId'
+      });
+
       this.hasMany(models.QuestionBank, {
         as: {
           plural: 'questionBanks',
@@ -15,7 +23,7 @@ function main(sequelize, DataTypes) {
 
   Program.init({
     name: DataTypes.STRING,
-    alias: DataTypes.STRING
+    description: DataTypes.STRING
   }, {
     sequelize,
     modelName: 'Program',

@@ -30,7 +30,7 @@ async function checkJWTToken(type, string) {
     if(!token) return null;
 
     if(moment().valueOf() >= moment(token.expiresAt).valueOf()) {
-      await token.revoke();
+      await token.update({revokedAt: moment().format()});
       return null;
     }
 
@@ -53,7 +53,12 @@ async function createJWTToken(type, userId) {
 
     if(!user) return null;
 
-    await user[keyData[type].revoke]();
+    await models[keyData[type].model].update({revokedAt: moment().format()}, {
+      where: {
+        revokedAt: null,
+        userId
+      }
+    });
 
     const token = await models[keyData[type].model].create({
       expiresAt: moment().format(),
@@ -61,7 +66,6 @@ async function createJWTToken(type, userId) {
     });
 
     await token.update({expiresAt: moment(token.createdAt).add(jwtConfig[keyData[type].expiry], 's').format()});
-    await token.reload();
 
     const tokenString = jwt.sign({
       sub: token.id,
