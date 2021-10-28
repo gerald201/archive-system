@@ -87,8 +87,8 @@ function validateFileType(file, schemaRule, isArray = false) {
         const fileExtension = path
           .extname(individualFile.originalname)
           .replace('.', '');
-        const extensionsCheck = !schemaRule.extensions.length || schemaRule.extensions.includes(fileExtension);
-        const mimetypeCheck = !schemaRule.mimetypes.length || schemaRule.mimetypes
+        const extensionsCheck = !(schemaRule.extensions.length || schemaRule.mimetypes.length) || schemaRule.extensions.includes(fileExtension);
+        const mimetypeCheck = !(schemaRule.extensions.length || schemaRule.mimetypes.length) || schemaRule.mimetypes
           .some(function(mimetype) {
             return (new RegExp(mimetype, 'gi')).test(individualFile.mimetype);
           });
@@ -106,8 +106,8 @@ function validateFileType(file, schemaRule, isArray = false) {
   const fileExtension = path
     .extname(file.originalname)
     .replace('.', '');
-  const extensionsCheck = !schemaRule.extensions.length || schemaRule.extensions.includes(fileExtension);
-  const mimetypeCheck = !schemaRule.mimetypes.length || schemaRule.mimetypes
+  const extensionsCheck = !(schemaRule.extensions.length || schemaRule.mimetypes.length) || schemaRule.extensions.includes(fileExtension);
+  const mimetypeCheck = !(schemaRule.extensions.length || schemaRule.mimetypes.length) || schemaRule.mimetypes
     .some(function(mimetype) {
       return (new RegExp(mimetype, 'gi')).test(file.mimetype);
     });
@@ -208,11 +208,11 @@ function main(options) {
     fileOptions.schema.push({
       name: field,
       maxCount: typeof rawFileSchema[field].maxCount == 'number' && rawFileSchema[field].maxCount > 0 ? rawFileSchema[field].maxCount : 1,
-      extensions: (Array.isArray(rawFileSchema[field].extensions) ? rawFileSchema[field].extensions : [])
+      extensions: (Array.isArray(rawFileSchema[field].extensions) ? rawFileSchema[field].extensions : (typeof rawFileSchema[field].extensions == 'string' ? [rawFileSchema[field].extensions] : []))
         .filter(function(extension) {
           typeof extension == 'string' && mimetypeMap.hasOwnProperty(extension);
         }),
-      mimetypes: (Array.isArray(rawFileSchema[field].mimetypes) ? rawFileSchema[field].mimetypes : [])
+      mimetypes: (Array.isArray(rawFileSchema[field].mimetypes) ? rawFileSchema[field].mimetypes : (typeof rawFileSchema[field].mimetypes == 'string' ? [rawFileSchema[field].mimetypes] : []))
         .filter(function(mimetype) {
           const allMimetypes = Object.values(mimetypeMap)
             .reduce(function(accumulator, current) {
@@ -304,6 +304,7 @@ function main(options) {
   return [
     ...middleware,
     function(request, response, next) {
+      console.log(fileOptions.schema);
       const validatedBody = validateBody(request.body, bodyOptions.schema);
       const validatedFile = fileOptions.schema.length ? validateFile(fileOptions.handler, request, fileOptions.schema) : true;
 
