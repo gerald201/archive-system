@@ -1,5 +1,6 @@
 const cors = require('cors');
 const express = require('express');
+const path = require('path');
 const error = require('./error');
 const fallback = require('./fallback');
 const activityLogMiddleware = require('./middleware/activity-log');
@@ -20,8 +21,8 @@ app.use(express.urlencoded({extended: true}));
 app.use(activityLogMiddleware());
 
 // Static Middleware
-app.use('/assets', express.static('../../public'));
-app.use('/uploads', express.static('../../storage/uploads'));
+app.use('/assets', express.static(path.join(__dirname, '../../public')));
+app.use('/uploads', express.static(path.join(__dirname, '../../storage/uploads')));
 
 router(app);
 fallback(app);
