@@ -3,9 +3,13 @@ module.exports = {
     status: 500,
     message: 'There has been an internal server error.'
   },
-  invalidRequestBody: {
+  invalidRequestFormBody: {
     status: 422,
     message: 'The request body provided has errors.'
+  },
+  invalidRequestFormData: {
+    status: 422,
+    message: 'The request form files provided has errors.'
   },
   uniqueUserViolation: {
     status: 409,

@@ -3,7 +3,7 @@ const fs = require('fs');
 const jwt = require('jsonwebtoken');
 const moment = require('moment');
 const path = require('path');
-const jwtConfig = require('../config/jwt');
+const jwtConfiguration = require('../configuration/jwt');
 const models = require('../database/models');
 const keyData = require('../resources/data/jwt-service-key-data');
 
@@ -65,18 +65,18 @@ async function createJWTToken(type, userId) {
       userId
     });
 
-    await token.update({expiresAt: moment(token.createdAt).add(jwtConfig[keyData[type].expiry], 's').format()});
+    await token.update({expiresAt: moment(token.createdAt).add(jwtConfiguration[keyData[type].expiry], 's').format()});
 
     const tokenString = jwt.sign({
       sub: token.id,
       iat: moment(token.createdAt).unix()
     }, privateKey, {
-      expiresIn: jwtConfig[keyData[type].expiry],
+      expiresIn: jwtConfiguration[keyData[type].expiry],
       algorithm: 'RS256'
     });
 
     return {
-      expiresIn: jwtConfig[keyData[type].expiry],
+      expiresIn: jwtConfiguration[keyData[type].expiry],
       token: tokenString
     }
   } catch(error) {

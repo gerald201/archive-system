@@ -7,20 +7,24 @@ function create() {
   return [
     roleGuard({allowed: 'super_admin'}),
     validationGuard({
-      $$strict: 'remove',
-      index: {
-        type: 'string',
-        empty: false
-      },
-      firstName: {
-        type: 'string',
-        empty: 'false',
-        min: 3
-      },
-      lastName: {
-        type: 'string',
-        empty: 'false',
-        min: 3
+      body: {
+        schema: {
+          $$strict: 'remove',
+          index: {
+            type: 'string',
+            empty: false
+          },
+          firstName: {
+            type: 'string',
+            empty: 'false',
+            min: 3
+          },
+          lastName: {
+            type: 'string',
+            empty: 'false',
+            min: 3
+          }
+        }
       }
     }),
     async function(request, response, next) {

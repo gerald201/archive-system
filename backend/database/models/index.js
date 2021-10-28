@@ -1,11 +1,11 @@
 const fs = require('fs');
 const path = require('path');
 const Sequelize = require('sequelize');
-const databaseConfig = require('../../config/database');
-const serverConfig = require('../../config/server');
+const databaseConfiguration = require('../../configuration/database');
+const serverConfiguration = require('../../configuration/server');
 const emitterService = require('../../services/emitter');
 
-const connectionConfig = databaseConfig[serverConfig.env];
+const connectionConfig = databaseConfiguration[serverConfiguration.env];
 const connection = connectionConfig.use_env_variable ? new Sequelize(process.env[connectionConfig.use_env_variable], connectionConfig) : new Sequelize(connectionConfig.database, connectionConfig.username, connectionConfig.password, connectionConfig);
 
 const models = fs.readdirSync(__dirname)

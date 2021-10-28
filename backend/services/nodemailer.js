@@ -1,8 +1,8 @@
 const nodemailer = require('nodemailer');
-const nodemailerConfig = require('../config/nodemailer');
-const serverConfig = require('../config/server');
+const nodemailerConfiguration = require('../configuration/nodemailer');
+const serverConfiguration = require('../configuration/server');
 
-const currentConfig = nodemailerConfig[serverConfig.env] || nodemailerConfig.development;
+const currentConfig = nodemailerConfiguration[serverConfiguration.env] || nodemailerConfiguration.development;
 const transport = nodemailer.createTransport(currentConfig);
 
 async function sendMail(config) {

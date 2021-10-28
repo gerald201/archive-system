@@ -38,14 +38,18 @@ function refresh() {
 function signIn() {
   return [
     validationGuard({
-      $$strict: 'remove',
-      index: {
-        type: 'string',
-        empty: false
-      },
-      password: {
-        type: 'string',
-        empty: false
+      body: {
+        schema: {
+          $$strict: 'remove',
+          index: {
+            type: 'string',
+            empty: false
+          },
+          password: {
+            type: 'string',
+            empty: false
+          }
+        }
       }
     }),
     async function(request, response, next) {
