@@ -210,7 +210,7 @@ function main(options) {
       maxCount: typeof rawFileSchema[field].maxCount == 'number' && rawFileSchema[field].maxCount > 0 ? rawFileSchema[field].maxCount : 1,
       extensions: (Array.isArray(rawFileSchema[field].extensions) ? rawFileSchema[field].extensions : (typeof rawFileSchema[field].extensions == 'string' ? [rawFileSchema[field].extensions] : []))
         .filter(function(extension) {
-          typeof extension == 'string' && mimetypeMap.hasOwnProperty(extension);
+          return typeof extension == 'string' && mimetypeMap.hasOwnProperty(extension);
         }),
       mimetypes: (Array.isArray(rawFileSchema[field].mimetypes) ? rawFileSchema[field].mimetypes : (typeof rawFileSchema[field].mimetypes == 'string' ? [rawFileSchema[field].mimetypes] : []))
         .filter(function(mimetype) {
@@ -304,7 +304,6 @@ function main(options) {
   return [
     ...middleware,
     function(request, response, next) {
-      console.log(fileOptions.schema);
       const validatedBody = validateBody(request.body, bodyOptions.schema);
       const validatedFile = fileOptions.schema.length ? validateFile(fileOptions.handler, request, fileOptions.schema) : true;
 
@@ -321,9 +320,13 @@ function main(options) {
           }, []);
 
         return next({
-          name: 'invalidRequestFormData',
+          name: 'RequestFormDataError',
           error: validated
         });
+      }
+
+      for(const key in request.body) {
+        if(request.body[key] === undefined) delete request.body[key];
       }
 
       return next();

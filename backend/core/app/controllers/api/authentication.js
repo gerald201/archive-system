@@ -8,26 +8,24 @@ function refresh() {
   return [
     async function (request, response, next) {
       try {
-        if(!request.query.token?.toString?.()) return next({name: 'invalidRefreshToken'});
+        if(!request.query.token?.toString?.()) return next({name: 'AuthorizationRenewalError'});
 
         const refreshToken = await checkJWTToken('refresh', request.query.token.toString());
 
-        if(!refreshToken) return next({name: 'invalidRefreshToken'});
+        if(!refreshToken) return next({name: 'AuthorizationRenewalError'});
 
         const user = await refreshToken.getUser();
         const accessToken = await createJWTToken('access', user.id);
-        const responseData = {
-          title: 'Refresh Successful.',
-          message: 'authentication has been successfully refreshed.',
+
+        return response.respond({
+          name: 'AuthorizationRenewalSuccess',
           data: {
             token: {access: accessToken}
           }
-        };
-
-        return response.send(responseData);
+        });
       } catch(error) {
         return next({
-          name: 'serverError',
+          name: 'ServerError',
           error
         });
       }
@@ -60,15 +58,15 @@ function signIn() {
           }
         });
   
-        if(!user) return next({name: 'invalidCredentials'});
+        if(!user) return next({name: 'AuthenticationValidityError'});
   
-        if(!checkWithHashAndSalt(request.body.password, user.hash, user.salt)) return next({name: 'inconsistentCredentials'});
+        if(!checkWithHashAndSalt(request.body.password, user.hash, user.salt)) return next({name: 'AuthenticationConsistencyError'});
   
         const accessToken = await createJWTToken('access', user.id);
         const refteshToken = await createJWTToken('refresh', user.id);
-        const responseData = {
-          title: 'Sign In Successful.',
-          message: 'User has been successfully signed in.',
+
+        return response.respond({
+          name: 'AuthenticationSuccess',
           data: {
             token: {
               access: accessToken,
@@ -76,12 +74,10 @@ function signIn() {
             },
             user: await user.toDescriptiveJSON()
           }
-        };
-
-        return response.send(responseData);
+        });
       } catch(error) {
         return next({
-          name: 'serverError',
+          name: 'ServerError',
           error
         });
       }
@@ -107,16 +103,10 @@ function signOut() {
           }
         });
 
-        const responseData = {
-          title: 'Sign Out Successful.',
-          message: 'User has been successfully signed out.',
-          data: null
-        };
-
-        return response.send(responseData);
+        return response.respond({name: 'AuthorizationRevocationSuccess'});
       } catch(error) {
         return next({
-          name: 'serverError',
+          name: 'ServerError',
           error
         });
       }
@@ -129,16 +119,13 @@ function whoami() {
     authenticationGuard(),
     async function(request, response, next) {
       try {
-        const responseData = {
-          title: 'User Retrieval Successful.',
-          message: 'User data has been successfully retrieved.',
+        return response.respond({
+          name: 'AuthorizedUserRetrievalSuccess',
           data: {user: await request.user.toDescriptiveJSON()}
-        };
-
-        return response.send(responseData);
+        });
       } catch(error) {
         return next({
-          name: 'serverError',
+          name: 'ServerError',
           error
         });
       }

@@ -5,7 +5,7 @@ const validationGuard = require('../../guards/validation');
 
 function create() {
   return [
-    roleGuard({allowed: 'super_admin'}),
+    roleGuard({allowed: 'super_administrator'}),
     validationGuard({
       body: {
         schema: {
@@ -33,7 +33,7 @@ function create() {
           where: {index: request.body.index}
         });
   
-        if(existingStudent) return next({name: 'uniqueUserViolation'});
+        if(existingStudent) return next({name: 'ResourceUniqueViolationError'});
   
         const passwordHashAndSalt = createHashAndSalt(request.body.index);
         const student = await models.User.create({
@@ -53,20 +53,13 @@ function create() {
           })).id
         });
   
-        const responseData = {
-          title: 'Student Created Successfully.',
-          message: 'A new student has been successfully created.',
-          data: {
-            student: await student.toDescriptiveJSON()
-          }
-        };
-  
-        return response
-          .status(201)
-          .send(responseData);
+        return response.respond({
+          name: 'ResourceCreationSuccess',
+          data: {student: await student.toDescriptiveJSON()}
+        });
       } catch(error) {
         return next({
-          name: 'serverError',
+          name: 'ServerError',
           error
         });
       }
@@ -76,35 +69,40 @@ function create() {
 
 function index() {
   return [
-    roleGuard({allowed: 'super_admin'}),
+    roleGuard({allowed: 'super_administrator'}),
     async function(request, response, next) {
       try {
-        const studentDatas = await models.UserProfile.findAll({
+        const studentProfiles = await models.UserProfile.findAll({
           where: {
             userProfileTypeId: (await models.UserProfileType.findOne({
               where: {name: 'student'}
             })).id
-          },
-          attributes: ['userId']
+          }
+        });
+        const rawStudents = models.User.findAll({
+          where: {
+            ...request.parseWhereClause(request.query.where),
+            id: {
+              [models.Sequelize.Op.in]: studentProfiles
+                .map(function(studentProfile) {
+                  return studentProfile.id;
+                })
+            }
+          }
         });
         const students = [];
         
-        for(const studentData of studentDatas) {
-          const student = await models.User.findByPk(studentData.userId);
-
-          students.push(await student.toDescriptiveJSON());
+        for(const rawStudent of rawStudents) {
+          students.push(await rawStudent.toDescriptiveJSON());
         }
 
-        const responseData = {
-          title: 'Students Retrieved Successfully.',
-          message: 'All students have been successfully retrieved.',
+        return response.respond({
+          name: 'ResourceRetrievalSuccess',
           data: {students}
-        };
-
-        return response.send(responseData);
+        });
       } catch(error) {
         return next({
-          name: 'serverError',
+          name: 'ServerError',
           error
         });
       }

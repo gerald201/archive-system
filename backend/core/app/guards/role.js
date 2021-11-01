@@ -30,12 +30,12 @@ function main(options) {
         const allowedCheck = allowedRoleNames.length ? allowedCount > 0 : true;
         const barredCheck = barredRoleNames.length ? barredCount == 0 : true;
 
-        if(!(allowedCheck && barredCheck)) return next({name: 'insufficientPermissions'});
+        if(!(allowedCheck && barredCheck)) return next({name: 'PermissionSufficiencyError'});
 
         return next();
       } catch(error) {
         return next({
-          name: 'serverError',
+          name: 'ServerError',
           error
         });
       }

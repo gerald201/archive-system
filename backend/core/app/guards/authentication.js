@@ -7,7 +7,7 @@ function main() {
         const tokenString = (request.headers.authorization || '').split(' ')[1];
         const accessToken = await checkJWTToken('access', tokenString);
 
-        if(!accessToken) return next({name: 'unauthenticated'});
+        if(!accessToken) return next({name: 'AuthorizationNotFoundError'});
 
         request.user = await accessToken.getUser();
         return next();

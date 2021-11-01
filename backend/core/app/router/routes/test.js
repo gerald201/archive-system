@@ -12,18 +12,14 @@ router
         destination: 'test',
         schema: {
           file: {
-            mimetypes: 'image/*',
-            size: '1m'
+            extensions: 'pdf',
+            size: '10m'
           }
         }
       }
     }),
     function(request, response, next) {
-      return response.send({
-        title: 'Test Successful.',
-        message: 'Test has been successfully executed.',
-        data: request.file
-      });
+      return response.respond({data: request.file});
     }
   ]);
 

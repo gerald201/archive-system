@@ -1,21 +1,33 @@
 async function down(queryInterface, Sequelize) {
-  await queryInterface.dropTable('QuestionBanks');
+  await queryInterface.dropTable('Courses');
 }
 
 async function up(queryInterface, Sequelize) {
-  await queryInterface.createTable('QuestionBanks', {
+  await queryInterface.createTable('Courses', {
     id: {
       allowNull: false,
       autoIncrement: true,
       primaryKey: true,
       type: Sequelize.INTEGER
     },
-    file: {
+    name: {
       allowNull: false,
       type: Sequelize.STRING,
       unique: true
     },
-    courseId: {
+    description: {
+      allowNull: true,
+      type: Sequelize.STRING
+    },
+    levelId: {
+      allowNull: false,
+      type: Sequelize.INTEGER
+    },
+    programId: {
+      allowNull: false,
+      type: Sequelize.INTEGER
+    },
+    semisterId: {
       allowNull: false,
       type: Sequelize.INTEGER
     },

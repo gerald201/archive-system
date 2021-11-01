@@ -1,4 +1,4 @@
-const errorMap = require('../../resources/data/error-map');
+const errorMessageMap = require('../../resources/data/error-message-map');
 
 function main(app) {
   app.use(function(request, response, next) {
@@ -6,26 +6,21 @@ function main(app) {
   });
   
   app.use(function(error, request, response, next) {
-    const name = errorMap.hasOwnProperty(error?.name) ? error.name: 'badRequest';
-    const errorData = errorMap[name];
-    const responseData = {
-      title: name
-        .replace(/([A-Z])/, ' $1')
-        .replace(/^[a-z]/, function(match) {
-          return match.toUpperCase();
-        }),
-      message: errorData.message,
-      data: {
-        errorType: name,
-        error: error?.error ?? null
-      }
-    };
-
-    console.log(error);
+    const name = errorMessageMap.hasOwnProperty(error?.name?.toString() ?? '') ? error.name: 'badRequest';
+    const messageData = errorMessageMap[name];
 
     return response
-      .status(errorData.status)
-      .send(responseData);
+      .status(messageData.status)
+      .send({
+        title: name
+          .replace(/([A-Z])/, ' $1')
+          .trim(),
+        message: messageData.message,
+        data: {
+          errorType: name,
+          error: error?.error ? {...error.error} : null
+        }
+      });
   });
 }
 

@@ -1,22 +1,22 @@
 const express = require('express');
-const apiAuthenticationController = require('../../../controllers/api/authentication');
+const controller = require('../../../controllers/api/authentication');
 
 const router = express.Router();
 
 router
   .route('/refresh')
-  .get(apiAuthenticationController.refresh());
+  .get(controller.refresh());
 
 router
   .route('/sign-in')
-  .post(apiAuthenticationController.signIn());
+  .post(controller.signIn());
 
 router
   .route('/sign-out')
-  .get(apiAuthenticationController.signOut());
+  .get(controller.signOut());
 
 router
   .route('/whoami')
-  .get(apiAuthenticationController.whoami());
+  .get(controller.whoami());
 
 module.exports = router;

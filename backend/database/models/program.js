@@ -11,10 +11,10 @@ function main(sequelize, DataTypes) {
         foreignKey: 'programId'
       });
 
-      this.hasMany(models.QuestionBank, {
+      this.hasMany(models.Course, {
         as: {
-          plural: 'questionBanks',
-          singular: 'questionBank'
+          plural: 'courses',
+          singular: 'course'
         },
         foreignKey: 'programId'
       });

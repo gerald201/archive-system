@@ -3,10 +3,10 @@ const { Model } = require('sequelize');
 function main(sequelize, DataTypes) {
   class Level extends Model {
     static associate(models) {
-      this.hasMany(models.QuestionBank, {
+      this.hasMany(models.Course, {
         as: {
-          plural: 'questionBanks',
-          singular: 'questionBank'
+          plural: 'courses',
+          singular: 'course'
         },
         foreignKey: 'levelId'
       });
