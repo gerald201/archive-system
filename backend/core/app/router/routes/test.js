@@ -12,7 +12,7 @@ router
         destination: 'test',
         schema: {
           file: {
-            mimetypes: 'image/*',
+            extensions: 'pdf',
             size: '1m'
           }
         }
