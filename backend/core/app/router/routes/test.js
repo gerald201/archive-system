@@ -13,7 +13,7 @@ router
         schema: {
           file: {
             extensions: 'pdf',
-            size: '10m'
+            size: '1m'
           }
         }
       }
