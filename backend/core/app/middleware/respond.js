@@ -4,7 +4,7 @@ function main() {
   return [
     function(request, response, next) {
       response.respond = function(options) {
-        const name = successMessageMap.hasOwnProperty(options?.name?.toString() ?? '') ? options.name : 'Success';
+        const name = (options?.name?.toString() ?? '') in successMessageMap ? options.name : 'Success';
         const messageData = successMessageMap[name];
 
         return response

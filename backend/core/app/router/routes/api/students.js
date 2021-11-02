@@ -1,5 +1,5 @@
 const express = require('express');
-const controller = require('../../../controllers/api/program');
+const controller = require('../../../controllers/api/student');
 
 const router = express.Router();
 
@@ -17,11 +17,11 @@ router
 
 router
   .route('/obliterate/:id')
-  .patch(controller.obliterate());
+  .delete(controller.obliterate());
 
 router
   .route('/restore/:id')
-  .patch(controller.restore());
+  .post(controller.restore());
 
 router
   .route('/update/:id')

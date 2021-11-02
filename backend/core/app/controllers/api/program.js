@@ -4,7 +4,7 @@ const validationGuard = require('../../guards/validation');
 
 function create() {
   return [
-    roleGuard({allowed: 'super_administrator'}),
+    roleGuard('super_administrator'),
     validationGuard({
       body: {
         schema: {
@@ -31,9 +31,10 @@ function create() {
   
         const program = await models.Program.create(request.body);
 
+        await program.reload();
         return response.respond({
           name: 'ResourceCreationSuccess',
-          data: {program: program.toJSON()}
+          data: {program}
         });
       } catch(error) {
         return next({
@@ -47,18 +48,19 @@ function create() {
 
 function destroy() {
   return [
-    roleGuard({allowed: 'super_administrator'}),
+    roleGuard('super_administrator'),
     async function(request, response, next) {
       try {
-        const program = await models.Program.findByPk(request.params.id);
+        const program = await models.Program.findOne({
+          where: {id: request.params.id}
+        });
 
         if(!program) return next({name: 'ResourceNotFoundError'});
 
         await program.destroy();
-        await program.reload();
         return response.respond({
           name: 'ResourceDestructionSuccess',
-          data: {program: program.toJSON()}
+          data: {program}
         });
       } catch(error) {
         return next({
@@ -72,34 +74,87 @@ function destroy() {
 
 function index() {
   return [
-    roleGuard({
-      allowed: [
-        'super_administrator',
-        'student'
-      ]
-    }),
+    roleGuard([
+      'super_administrator',
+      'student'
+    ]),
     async function(request, response, next) {
       try {
-        const attributesQueryData = request.parseDbQuery('attributes', request.query.attributes);
-        const orderQueryData = request.parseDbQuery('order', request.query.order);
-        const whereQueryData = request.parseDbQuery('where', request.query.where);
-        const paginationData = request.parsePagination(request.query.pagination);
+        const attributesQueryData = request.parseDatabaseQuery('attributes', request.query.attributes);
+        const orderQueryData = request.parseDatabaseQuery('order', request.query.order);
+        const whereQueryData = request.parseDatabaseQuery('where', request.query.where);
+        const { limit: limitQueryData, offset: offsetQueryData } = request.parsePagination(request.query.pagination);
+        const databaseQuery = {paranoid: false};
 
-        const programs = await models.Program.findAll({
-          attributes: attributesQueryData,
-          order: orderQueryData,
-          where: whereQueryData,
-          ...paginationData
-        });
-        const preppedPrograms = [];
+        if(attributesQueryData) databaseQuery.attributes = attributesQueryData;
 
-        for(const program of programs) {
-          preppedPrograms.push(program.toJSON());
-        }
+        if(orderQueryData) databaseQuery.order = orderQueryData;
+
+        if(whereQueryData) databaseQuery.where = whereQueryData;
+
+        if(limitQueryData) databaseQuery.limit = limitQueryData;
+
+        if(offsetQueryData) databaseQuery.offset = offsetQueryData;
+
+        const programs = await models.Program.findAll(databaseQuery);
 
         return response.respond({
           name: 'ResourceRetrievalSuccess',
-          data: {programs: preppedPrograms}
+          data: {programs}
+        });
+      } catch(error) {
+        return next({
+          name: 'ServerError',
+          error
+        });
+      }
+    }
+  ];
+}
+
+function obliterate() {
+  return [
+    roleGuard('super_administrator'),
+    async function(request, response, next) {
+      try {
+        const program = await models.Program.findOne({
+          paranoid: false,
+          where: {id: request.params.id}
+        });
+
+        if(!program) return next({name: 'ResourceUniqueViolationError'});
+
+        await program.destroy({force: true});
+        return response.respond({
+          name: 'ResourceObliterationSuccess',
+          data: {program}
+        });
+      } catch(error) {
+        return next({
+          name: 'ServerError',
+          error
+        });
+      }
+    }
+  ];
+}
+
+function restore() {
+  return [
+    roleGuard('super_administrator'),
+    async function(request, response, next) {
+      try {
+        const program = await models.Program.findOne({
+          paranoid: false,
+          where: {id: request.params.id}
+        });
+
+        if(!program) return next({name: 'ResourceUniqueViolationError'});
+
+        await program.restore();
+        return response.respond({
+          name: 'ResourceRestorationSuccess',
+          data: {program}
         });
       } catch(error) {
         return next({
@@ -113,7 +168,7 @@ function index() {
 
 function update() {
   return [
-    roleGuard({allowed: 'super_administrator'}),
+    roleGuard('super_administrator'),
     validationGuard({
       body: {
         schema: {
@@ -133,23 +188,26 @@ function update() {
     }),
     async function(request, response, next) {
       try {
-        const program = await models.Program.findByPk(request.params.id);
+        const program = await models.Program.findOne({
+          paranoid: false,
+          where: {id: request.params.id}
+        });
 
         if(!program) return next({name: 'ResourceNotFoundError'});
 
-        if(request.body.hasOwnProperty('name')) {
+        if('name' in request.body) {
           const existingProgram = await models.Program.findOne({
             where: {name: request.body.name}
           });
 
-          if(existingProgram) return next({name: 'ResourceUniqueViolationError'});
+          if(existingProgram && existingProgram.id != program.id) return next({name: 'ResourceUniqueViolationError'});
         }
 
         await program.update(request.body);
         await program.reload();
         return response.respond({
           name: 'ResourceUpdateSuccess',
-          data: {program: program.toJSON()}
+          data: {program}
         });
       } catch(error) {
         return next({
@@ -163,15 +221,16 @@ function update() {
 
 function view() {
   return [
-    roleGuard({
-      allowed: [
-        'super_administrator',
-        'student'
-      ]
-    }),
+    roleGuard([
+      'super_administrator',
+      'student'
+    ]),
     async function(request, response, next) {
       try {
-        const program = await models.Program.findByPk(request.params.id);
+        const program = await models.Program.findOne({
+          paranoid: false,
+          where: {id: request.params.id}
+        });
 
         if(!program) return next({name: 'ResourceNotFoundError'});
 
@@ -193,6 +252,8 @@ module.exports = {
   create,
   destroy,
   index,
+  obliterate,
+  restore,
   update,
   view
 };

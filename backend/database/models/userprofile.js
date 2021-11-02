@@ -4,12 +4,12 @@ function main(sequelize, DataTypes) {
   class UserProfile extends Model {
     static associate(models) {
       this.belongsTo(models.User, {
-        as: 'user',
+        as: 'User',
         foreignKey: 'userId'
       });
 
       this.belongsTo(models.UserProfileType, {
-        as: 'userProfileType',
+        as: 'UserProfileType',
         foreignKey: 'userProfileTypeId'
       });
     }

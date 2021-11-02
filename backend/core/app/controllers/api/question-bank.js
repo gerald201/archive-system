@@ -6,7 +6,7 @@ const validationGuard = require('../../guards/validation');
 
 function create() {
   return [
-    roleGuard({allowed: 'super_administrator'}),
+    roleGuard('super_administrator'),
     validationGuard({
       body: {
         schema: {
@@ -54,7 +54,7 @@ function create() {
 
 function destroy() {
   return [
-    roleGuard({allowed: 'super_administrator'}),
+    roleGuard('super_administrator'),
     async function(request, response, next) {
       try {
         const questionBank = await models.QuestionBank.findByPk(request.params.id);
@@ -79,34 +79,56 @@ function destroy() {
 
 function index() {
   return [
-    roleGuard({
-      allowed: [
-        'super_administrator',
-        'student'
-      ]
-    }),
+    roleGuard([
+      'super_administrator',
+      'student'
+    ]),
     async function(request, response, next) {
       try {
-        const attributesQueryData = request.parseDbQuery('attributes', request.query.attributes);
-        const orderQueryData = request.parseDbQuery('order', request.query.order);
-        const whereQueryData = request.parseDbQuery('where', request.query.where);
-        const paginationData = request.parsePagination(request.query.pagination);
+        const attributesQueryData = request.parseDatabaseQuery('attributes', request.query.attributes);
+        const includeQueryData = request.parseDatabaseQuery('include', request.query.include);
+        const orderQueryData = request.parseDatabaseQuery('order', request.query.order);
+        const whereQueryData = request.parseDatabaseQuery('where', request.query.where);
+        const { limit: limitQueryData, offset: offsetQueryData } = request.parsePagination(request.query.pagination);
+        const databaseQuery = {};
 
-        const questionBanks = await models.QuestionBank.findAll({
-          attributes: attributesQueryData,
-          order: orderQueryData,
-          where: whereQueryData,
-          ...paginationData
-        });
-        const preppedQuestionBanks = [];
+        if(attributesQueryData) databaseQuery.attributes = attributesQueryData;
 
-        for(const questionBank of questionBanks) {
-          preppedQuestionBanks.push(questionBank.toJSON());
+        if(includeQueryData) databaseQuery.include = includeQueryData;
+        else {
+          databaseQuery.include = {
+            model: models.Course,
+            as: 'Course',
+            include: [
+              {
+                model: models.Level,
+                as: 'Level'
+              },
+              {
+                model: models.Program,
+                as: 'Program'
+              },
+              {
+                model: models.Semester,
+                as: 'Semester'
+              }
+            ]
+          };
         }
+
+        if(orderQueryData) databaseQuery.order = orderQueryData;
+
+        if(whereQueryData) databaseQuery.where = whereQueryData;
+
+        if(limitQueryData) databaseQuery.limit = limitQueryData;
+
+        if(offsetQueryData) databaseQuery.offset = offsetQueryData;
+
+        const questionBanks = await models.QuestionBank.findAll(databaseQuery);
         
         return response.respond({
           name: 'ResourceRetrievalSuccess',
-          data: {questionBanks: preppedQuestionBanks}
+          data: {questionBanks}
         });
       } catch(error) {
         return next({
@@ -120,7 +142,7 @@ function index() {
 
 function update() {
   return [
-    roleGuard({allowed: 'super_administrator'}),
+    roleGuard('super_administrator'),
     validationGuard({
       body: {
         schema: {
@@ -150,10 +172,10 @@ function update() {
 
         if(!questionBank) return next({name: 'ResourceNotFoundError'});
 
-        if(request.body.hasOwnProperty('levelId')) {
-          const level = await models.Level.findByPk(request.body.levelId);
+        if('courseId' in request.body) {
+          const course = await models.Course.findByPk(request.body.courseId);
 
-          if(!level) return next({name: 'ResourceNotFoundError'});
+          if(!course) return next({name: 'ResourceNotFoundError'});
         }
 
         if(request.file) {

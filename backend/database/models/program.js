@@ -5,16 +5,16 @@ function main(sequelize, DataTypes) {
     static associate(models) {
       this.hasMany(models.Project, {
         as: {
-          plural: 'projects',
-          singular: 'project'
+          plural: 'Projects',
+          singular: 'Project'
         },
         foreignKey: 'programId'
       });
 
       this.hasMany(models.Course, {
         as: {
-          plural: 'courses',
-          singular: 'course'
+          plural: 'Courses',
+          singular: 'Course'
         },
         foreignKey: 'programId'
       });

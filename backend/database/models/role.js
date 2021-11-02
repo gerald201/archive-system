@@ -5,8 +5,8 @@ function main(sequelize, DataTypes) {
     static associate(models) {
       this.belongsToMany(models.User, {
         as: {
-          plural: 'users',
-          singular: 'user'
+          plural: 'Users',
+          singular: 'User'
         },
         foreignKey: 'roleId',
         otherKey: 'userId',

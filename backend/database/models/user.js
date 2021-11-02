@@ -5,8 +5,8 @@ function main(sequelize, DataTypes) {
     static associate(models) {
       this.belongsToMany(models.Role, {
         as: {
-          plural: 'roles',
-          singular: 'role'
+          plural: 'Roles',
+          singular: 'Role'
         },
         foreignKey: 'userId',
         otherKey: 'roleId',
@@ -15,62 +15,32 @@ function main(sequelize, DataTypes) {
 
       this.hasMany(models.AccessToken, {
         as: {
-          plural: 'accessTokens',
-          singular: 'accessToken'
+          plural: 'AccessTokens',
+          singular: 'AccessToken'
         },
         foreignKey: 'userId'
       });
 
       this.hasMany(models.Project, {
         as: {
-          plural: 'project',
-          singular: 'projects'
+          plural: 'Project',
+          singular: 'Projects'
         },
         foreignKey: 'userId'
       });
 
       this.hasMany(models.RefreshToken, {
         as: {
-          plural: 'refreshTokens',
-          singular: 'refreshToken'
+          plural: 'RefreshTokens',
+          singular: 'RefreshToken'
         },
         foreignKey: 'userId'
       });
 
       this.hasOne(models.UserProfile, {
-        as: 'userProfile',
+        as: 'UserProfile',
         foreignKey: 'userId'
       });
-    }
-
-    async toDescriptiveJSON() {
-      const data = this.toJSON();
-      const ignored = [
-        'hash',
-        'salt'
-      ];
-      const userProfile = await this.getUserProfile();
-      const roles = await this.getRoles();
-
-      for(const key of ignored) {
-        delete data[key];
-      }
-
-      if(userProfile) {
-        const userProfileType = await userProfile.getUserProfileType();
-
-        data.UserProfile = userProfile.toJSON();
-        data.UserProfile.UserProfileType = userProfileType.toJSON();
-      }
-
-      if(roles.length) {
-        data.Roles = roles
-          .map(function(role) {
-            return role.toJSON();
-          });
-      }
-
-      return data;
     }
   }
 

@@ -19,6 +19,10 @@ module.exports = {
     status: 403,
     message: 'The authorized user has insufficient permissions to fulfill this request.'
   },
+  RequestError: {
+    status: 400,
+    message: 'There seems to be an error with the request.'
+  },
   RequestFormDataError: {
     status: 422,
     message: 'There are some errors found in the provided form data.'

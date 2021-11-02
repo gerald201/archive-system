@@ -1,3 +1,4 @@
+const models = require('../../../database/models');
 const { checkJWTToken } = require('../../../services/jwt');
 
 function main() {
@@ -9,7 +10,23 @@ function main() {
 
         if(!accessToken) return next({name: 'AuthorizationNotFoundError'});
 
-        request.user = await accessToken.getUser();
+        request.user = await models.User.findOne({
+          include: [
+            {
+              model: models.Role,
+              as: 'Roles'
+            },
+            {
+              model: models.UserProfile,
+              as: 'UserProfile',
+              include: {
+                model: models.UserProfileType,
+                as: 'UserProfileType'
+              }
+            }
+          ],
+          where: {id: accessToken.userId}
+        });
         return next();
       } catch(error) {
         return {

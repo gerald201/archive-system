@@ -1,5 +1,5 @@
 const express = require('express');
-const controller = require('../../../controllers/api/program');
+const controller = require('../../../controllers/api/project');
 
 const router = express.Router();
 
@@ -14,14 +14,6 @@ router
 router
   .route('/')
   .get(controller.index());
-
-router
-  .route('/obliterate/:id')
-  .patch(controller.obliterate());
-
-router
-  .route('/restore/:id')
-  .patch(controller.restore());
 
 router
   .route('/update/:id')

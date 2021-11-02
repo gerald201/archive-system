@@ -23,6 +23,14 @@ module.exports = {
     status: 200,
     message: 'The resource has been successfully destroyed.'
   },
+  ResourceObliterationSuccess: {
+    status: 200,
+    message: 'The resource has been successfully obliterated.'
+  },
+  ResourceRestorationSuccess: {
+    status: 200,
+    message: 'The resource or resources have been successfully restored.'
+  },
   ResourceRetrievalSuccess: {
     status: 200,
     message: 'The resource or resources have been successfully retrieved.'

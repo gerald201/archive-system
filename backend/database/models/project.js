@@ -4,12 +4,12 @@ function main(sequelize, DataTypes) {
   class Project extends Model {
     static associate(models) {
       this.belongsTo(models.Program, {
-        as: 'program',
+        as: 'Program',
         foreignKey: 'programId'
       });
 
       this.belongsTo(models.User, {
-        as: 'user',
+        as: 'User',
         foreignKey: 'userId'
       });
     }

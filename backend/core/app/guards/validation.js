@@ -210,7 +210,7 @@ function main(options) {
       maxCount: typeof rawFileSchema[field].maxCount == 'number' && rawFileSchema[field].maxCount > 0 ? rawFileSchema[field].maxCount : 1,
       extensions: (Array.isArray(rawFileSchema[field].extensions) ? rawFileSchema[field].extensions : (typeof rawFileSchema[field].extensions == 'string' ? [rawFileSchema[field].extensions] : []))
         .filter(function(extension) {
-          return typeof extension == 'string' && mimetypeMap.hasOwnProperty(extension);
+          return typeof extension == 'string' && extension in mimetypeMap;
         }),
       mimetypes: (Array.isArray(rawFileSchema[field].mimetypes) ? rawFileSchema[field].mimetypes : (typeof rawFileSchema[field].mimetypes == 'string' ? [rawFileSchema[field].mimetypes] : []))
         .filter(function(mimetype) {

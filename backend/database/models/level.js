@@ -5,8 +5,8 @@ function main(sequelize, DataTypes) {
     static associate(models) {
       this.hasMany(models.Course, {
         as: {
-          plural: 'courses',
-          singular: 'course'
+          plural: 'Courses',
+          singular: 'Course'
         },
         foreignKey: 'levelId'
       });

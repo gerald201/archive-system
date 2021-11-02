@@ -1,5 +1,6 @@
+const moment = require('moment');
 const models = require('../../../../database/models');
-const { checkWithHashAndSalt, createHashAndSalt } = require('../../../../services/crypto');
+const { checkWithHashAndSalt } = require('../../../../services/crypto');
 const { checkJWTToken, createJWTToken } = require('../../../../services/jwt');
 const authenticationGuard = require('../../guards/authentication');
 const validationGuard = require('../../guards/validation');
@@ -53,9 +54,21 @@ function signIn() {
     async function(request, response, next) {
       try {
         const user = await models.User.findOne({
-          where: {
-            index: request.body.index
-          }
+          include: [
+            {
+              model: models.Role,
+              as: 'Roles'
+            },
+            {
+              model: models.UserProfile,
+              as: 'UserProfile',
+              include: {
+                model: models.UserProfileType,
+                as: 'UserProfileType'
+              }
+            }
+          ],
+          where: {index: request.body.index}
         });
   
         if(!user) return next({name: 'AuthenticationValidityError'});
@@ -64,6 +77,10 @@ function signIn() {
   
         const accessToken = await createJWTToken('access', user.id);
         const refteshToken = await createJWTToken('refresh', user.id);
+        const preppedUser = user.toJSON();
+
+        delete preppedUser.hash;
+        delete preppedUser.salt;
 
         return response.respond({
           name: 'AuthenticationSuccess',
@@ -72,7 +89,7 @@ function signIn() {
               access: accessToken,
               refresh: refteshToken
             },
-            user: await user.toDescriptiveJSON()
+            user: preppedUser
           }
         });
       } catch(error) {
@@ -105,6 +122,7 @@ function signOut() {
 
         return response.respond({name: 'AuthorizationRevocationSuccess'});
       } catch(error) {
+        console.log(error);
         return next({
           name: 'ServerError',
           error
@@ -119,9 +137,13 @@ function whoami() {
     authenticationGuard(),
     async function(request, response, next) {
       try {
+        const preppedUser = request.user.toJSON();
+
+        delete preppedUser.hash;
+        delete preppedUser.salt;
         return response.respond({
           name: 'AuthorizedUserRetrievalSuccess',
-          data: {user: await request.user.toDescriptiveJSON()}
+          data: {user: preppedUser}
         });
       } catch(error) {
         return next({

@@ -6,31 +6,33 @@ function main(options) {
     authenticationGuard(),
     async function(request, response, next) {
       try {
+        options = options?.constructor?.name?.toLowerCase() == 'object' ? options : (Array.isArray(options) ? {include: options} : (typeof options == 'string' ? [options] : options));
+
         const roleNames = await models.Role.findAll({
           attributes: ['name']
         });
-        const allowedRoleNames = (Array.isArray(options?.allowed) ? options?.allowed : (typeof options.allowed == 'string' ? [options.allowed] : []))
+        const excludedRoleNames = (Array.isArray(options?.exclude) ? options.exclude : (typeof options?.exclude == 'string' ? [options.exclude] : []))
+          .filter(function(roleName) {
+            return roleNames.includes(roleName) && !includedRoleNames.includes(roleName);
+          });
+        const includedRoleNames = (Array.isArray(options?.include) ? options?.include : (typeof options.include == 'string' ? [options.include] : []))
           .filter(function(roleName) {
             return roleNames.includes(roleName);
           });
-        const barredRoleNames = (Array.isArray(options?.barred) ? options.barred : (typeof options?.barred == 'string' ? [options.barred] : []))
-          .filter(function(roleName) {
-            return roleNames.includes(roleName) && !allowedRoleNames.includes(roleName);
-          });
-        const allowedCount = await request.user.countRoles({
+        const excludeCount = await request.user.countRoles({
           where: {
-            name: {[models.Sequelize.Op.in]: allowedRoleNames}
+            name: {[models.Sequelize.Op.in]: excludedRoleNames}
           }
         });
-        const barredCount = await request.user.countRoles({
+        const includeCount = await request.user.countRoles({
           where: {
-            name: {[models.Sequelize.Op.in]: barredRoleNames}
+            name: {[models.Sequelize.Op.in]: includedRoleNames}
           }
         });
-        const allowedCheck = allowedRoleNames.length ? allowedCount > 0 : true;
-        const barredCheck = barredRoleNames.length ? barredCount == 0 : true;
+        const excludeCheck = excludedRoleNames.length ? excludeCount == 0 : true;
+        const icludeCheck = includedRoleNames.length ? includeCount > 0 : true;
 
-        if(!(allowedCheck && barredCheck)) return next({name: 'PermissionSufficiencyError'});
+        if(!(icludeCheck && excludeCheck)) return next({name: 'PermissionSufficiencyError'});
 
         return next();
       } catch(error) {

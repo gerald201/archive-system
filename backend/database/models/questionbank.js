@@ -4,7 +4,7 @@ function main(sequelize, DataTypes) {
   class QuestionBank extends Model {
     static associate(models) {
       this.belongsTo(models.Course, {
-        as: 'course',
+        as: 'Course',
         foreignKey: 'courseId'
       });
     }

@@ -4,7 +4,7 @@ const path = require('path');
 const error = require('./error');
 const fallback = require('./fallback');
 const activityLogMiddleware = require('./middleware/activity-log');
-const parseDbQueryMiddleware = require('./middleware/parse-db-query');
+const parseDatabaseQueryMiddleware = require('./middleware/parse-database-query');
 const parsePaginationMiddleware = require('./middleware/parse-pagination');
 const respondMiddleware = require('./middleware/respond');
 const router = require('./router');
@@ -22,7 +22,7 @@ app.use(express.urlencoded({extended: true}));
 
 // Custom Middleware
 app.use(activityLogMiddleware());
-app.use(parseDbQueryMiddleware());
+app.use(parseDatabaseQueryMiddleware());
 app.use(parsePaginationMiddleware());
 app.use(respondMiddleware());
 

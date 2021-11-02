@@ -4,7 +4,7 @@ const validationGuard = require('../../guards/validation');
 
 function create() {
   return [
-    roleGuard({allowed: 'super_administrator'}),
+    roleGuard('super_administrator'),
     validationGuard({
       body: {
         schema: {
@@ -52,9 +52,10 @@ function create() {
 
         const course = await models.Course.create(request.body);
 
+        await course.reload();
         return response.respond({
           name: 'ResourceCreationSuccess',
-          data: {course: course.toJSON()}
+          data: {course}
         })
       } catch(error) {
         return next({
@@ -68,7 +69,7 @@ function create() {
 
 function destroy() {
   return [
-    roleGuard({allowed: 'super_administrator'}),
+    roleGuard('super_administrator'),
     async function(request, response, next) {
       try {
         const course = models.Course.findByPk(request.params.id);
@@ -79,7 +80,7 @@ function destroy() {
         await course.reload();
         return response.respond({
           name: 'ResourceDestructionSuccess',
-          data: {course: course.toJSON()}
+          data: {course}
         })
       } catch(error) {
         return next({
@@ -93,34 +94,52 @@ function destroy() {
 
 function index() {
   return [
-    roleGuard({
-      allowed: [
-        'super_administrator',
-        'student'
-      ]
-    }),
+    roleGuard([
+      'super_administrator',
+      'student'
+    ]),
     async function(request, response, next) {
       try {
-        const attributesQueryData = request.parseDbQuery('attributes', request.query.attributes);
-        const orderQueryData = request.parseDbQuery('order', request.query.order);
-        const whereQueryData = request.parseDbQuery('where', request.query.where);
-        const paginationData = request.parsePagination(request.query.pagination);
+        const attributesQueryData = request.parseDatabaseQuery('attributes', request.query.attributes);
+        const includeQueryData = request.parseDatabaseQuery('include', request.query.include);
+        const orderQueryData = request.parseDatabaseQuery('order', request.query.order);
+        const whereQueryData = request.parseDatabaseQuery('where', request.query.where);
+        const { limit: limitQueryData, offset: offsetQueryData } = request.parsePagination(request.query.pagination);
+        const databaseQuery = {};
 
-        const courses = await models.Course.findAll({
-          attributes: attributesQueryData,
-          order: orderQueryData,
-          where: whereQueryData,
-          ...paginationData
-        });
-        const preppedCourses = [];
+        if(attributesQueryData) databaseQuery.attributes = attributesQueryData;
 
-        for(const course of courses) {
-          preppedCourses.push(course.toJSON());
+        if(includeQueryData) databaseQuery.include = includeQueryData;
+        else {
+          databaseQuery.include = [
+            {
+              model: models.Level,
+              as: 'Level'
+            },
+            {
+              model: models.Program,
+              as: 'Program'
+            },
+            {
+              model: models.Semester,
+              as: 'Semester'
+            }
+          ];
         }
+
+        if(orderQueryData) databaseQuery.order = orderQueryData;
+
+        if(whereQueryData) databaseQuery.where = whereQueryData;
+
+        if(limitQueryData) databaseQuery.limit = limitQueryData;
+
+        if(offsetQueryData) databaseQuery.offset = offsetQueryData;
+
+        const courses = await models.Course.findAll(databaseQuery);
 
         return response.respond({
           name: 'ResourceRetrievalSuccess',
-          data: {courses: preppedCourses}
+          data: {courses}
         });
       } catch(error) {
         return next({
@@ -134,7 +153,7 @@ function index() {
 
 function update() {
   return [
-    roleGuard({allowed: 'super_administrator'}),
+    roleGuard('super_administrator'),
     validationGuard({
       body: {
         schema: {
@@ -176,7 +195,7 @@ function update() {
 
         if(!course) return next({name: 'ResourceNotFoundError'});
 
-        if(request.body.hasOwnProperty('name')) {
+        if('name' in request.body) {
           const existingCourse = await models.Course.findOne({
             where: {name: request.body.name}
           });
@@ -184,19 +203,19 @@ function update() {
           if(existingCourse) return next({name: 'ResourceUniqueViolationError'});
         }
 
-        if(request.body.hasOwnProperty('levelId')) {
+        if('levelId' in request.body) {
           const level = await models.Level.findByPk(request.body.levelId);
 
           if(!level) return next({name: 'ResourceNotFoundError'});
         }
 
-        if(request.body.hasOwnProperty('programId')) {
+        if('programId' in request.body) {
           const program = await models.Program.findByPk(request.body.programId);
 
           if(!program) return next({name: 'ResourceNotFoundError'});
         }
 
-        if(request.body.hasOwnProperty('semesterId')) {
+        if('semesterId' in request.body) {
           const semester = await models.Semester.findByPk(request.body.semesterId);
 
           if(!semester) return next({name: 'ResourceNotFoundError'});
@@ -220,12 +239,10 @@ function update() {
 
 function view() {
   return [
-    roleGuard({
-      allowed: [
-        'super_administrator',
-        'student'
-      ]
-    }),
+    roleGuard([
+      'super_administrator',
+      'student'
+    ]),
     async function(request, response, next) {
       try {
         const course = await models.Course.findByPk(request.params.id);

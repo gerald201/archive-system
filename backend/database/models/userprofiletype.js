@@ -5,8 +5,8 @@ function main(sequelize, DataTypes) {
     static associate(models) {
       this.hasMany(models.UserProfile, {
         as: {
-          plural: 'userProfiles',
-          singular: 'userProfile'
+          plural: 'UserProfiles',
+          singular: 'UserProfile'
         },
         foreignKey: 'userProfileTypeId'
       });

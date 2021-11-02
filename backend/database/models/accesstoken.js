@@ -4,7 +4,7 @@ function main(sequelize, DataTypes) {
   class AccessToken extends Model {
     static associate(models) {
       this.belongsTo(models.User, {
-        as: 'user',
+        as: 'User',
         foreignKey: 'userId'
       });
     }

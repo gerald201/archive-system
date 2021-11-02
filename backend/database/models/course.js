@@ -4,24 +4,24 @@ function main(sequelize, DataTypes) {
   class Course extends Model {
     static associate(models) {
       this.belongsTo(models.Level, {
-        as: 'level',
+        as: 'Level',
         foreignKey: 'levelId'
       });
 
       this.belongsTo(models.Program, {
-        as: 'program',
+        as: 'Program',
         foreignKey: 'programId'
       });
 
       this.belongsTo(models.Semester, {
-        as: 'semester',
+        as: 'Semester',
         foreignKey: 'semesterId'
       });
       
       this.hasMany(models.QuestionBank, {
         as: {
-          plural: 'questionBanks',
-          singular: 'questionBank'
+          plural: 'QuestionBanks',
+          singular: 'QuestionBank'
         },
         foreignKey: 'courseId'
       });
