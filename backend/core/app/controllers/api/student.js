@@ -120,6 +120,7 @@ function destroy() {
               }
             }
           ],
+          paranoid: false,
           where: {
             id: request.params.id,
             '$UserProfile.UserProfileType.name$': 'student'
@@ -394,7 +395,10 @@ function update() {
         delete userProfileData.index;
 
         if('index' in request.body) {
-          const existingUser = await models.Course.findOne({index: request.body.index});
+          const existingUser = await models.Course.findOne({
+            paranoid: false,
+            where: {index: request.body.index}
+          });
 
           if(existingUser && existingUser.id != student.id) return next({name: 'ResourceUniqueViolationError'});
 
@@ -420,6 +424,7 @@ function update() {
 
 function view() {
   return [
+    roleGuard('super_administrator'),
     async function(request, response, next) {
       try {
         const student = await models.User.findOne({

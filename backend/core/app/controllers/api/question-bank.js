@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const models = require('../../../../database/models');
+const authenticationGuard = require('../../guards/authentication');
 const roleGuard = require('../../guards/role');
 const validationGuard = require('../../guards/validation');
 
@@ -28,7 +29,10 @@ function create() {
     }),
     async function(request, response, next) {
       try {
-        const course = await models.Course.findByPk(request.body.courseId);
+        const course = await models.Course.findOne({
+          paranoid: false,
+          where: {id: request.body.courseId}
+        });
   
         if(!course) return next({name: 'ResourceNotFoundError'});
   
@@ -36,11 +40,31 @@ function create() {
 
         request.body.file = path.relative(uploadsPath, request.file.path);
 
-        const questionBank = await models.QuestionBank.create(request.body);
+        const questionBank = await models.QuestionBank.create(request.body, {
+          include: {
+            model: models.Course,
+            as: 'Course',
+            include: [
+              {
+                model: models.Level,
+                as: 'Level'
+              },
+              {
+                model: models.Program,
+                as: 'Program'
+              },
+              {
+                model: models.Semester,
+                as: 'Semester'
+              }
+            ]
+          }
+        });
   
+        await questionBank.reload();
         return response.respond({
           name: 'ResourceCreationSuccess',
-          data: {questionBank: questionBank.toJSON()}
+          data: {questionBank}
         });
       } catch(error) {
         return next({
@@ -57,15 +81,35 @@ function destroy() {
     roleGuard('super_administrator'),
     async function(request, response, next) {
       try {
-        const questionBank = await models.QuestionBank.findByPk(request.params.id);
+        const questionBank = await models.QuestionBank.findOne({
+          include: {
+            model: models.Course,
+            as: 'Course',
+            include: [
+              {
+                model: models.Level,
+                as: 'Level'
+              },
+              {
+                model: models.Program,
+                as: 'Program'
+              },
+              {
+                model: models.Semester,
+                as: 'Semester'
+              }
+            ]
+          },
+          paranoid: false,
+          where: {id: request.params.id}
+        });
 
         if(!questionBank) return next({name: 'ResourceNotFoundError'});
 
         await questionBank.destroy();
-        await questionBank.reload();
         return response.respond({
           name: 'ResourceDestructionSuccess',
-          data: {questionBank: questionBank.toJSON()}
+          data: {questionBank}
         });
       } catch(error) {
         return next({
@@ -79,10 +123,7 @@ function destroy() {
 
 function index() {
   return [
-    roleGuard([
-      'super_administrator',
-      'student'
-    ]),
+    authenticationGuard(),
     async function(request, response, next) {
       try {
         const attributesQueryData = request.parseDatabaseQuery('attributes', request.query.attributes);
@@ -90,7 +131,7 @@ function index() {
         const orderQueryData = request.parseDatabaseQuery('order', request.query.order);
         const whereQueryData = request.parseDatabaseQuery('where', request.query.where);
         const { limit: limitQueryData, offset: offsetQueryData } = request.parsePagination(request.query.pagination);
-        const databaseQuery = {};
+        const databaseQuery = {paranoid: false};
 
         if(attributesQueryData) databaseQuery.attributes = attributesQueryData;
 
@@ -140,6 +181,97 @@ function index() {
   ];
 }
 
+function obliterate() {
+  return [
+    roleGuard('super_administrator'),
+    async function(request, response, next) {
+      try {
+        const questionBank = await models.QuestionBank.findOne({
+          include: {
+            model: models.Course,
+            as: 'Course',
+            include: [
+              {
+                model: models.Level,
+                as: 'Level'
+              },
+              {
+                model: models.Program,
+                as: 'Program'
+              },
+              {
+                model: models.Semester,
+                as: 'Semester'
+              }
+            ]
+          },
+          paranoid: false,
+          where: {id: request.params.id}
+        });
+
+        if(!questionBank) return next({name: 'ResourceNotFoundError'});
+
+        fs.rm(path.join(__dirname, '../../../../storage/uploads', questionBank.file), function(error) {});
+        await questionBank.destroy({force: true});
+        return response.respond({
+          name: 'ResourceObliterationSuccess',
+          data: {questionBank}
+        });
+      } catch(error) {
+        return next({
+          name: 'ServerError',
+          error
+        });
+      }
+    }
+  ];
+}
+
+function restore() {
+  return [
+    roleGuard('super_administrator'),
+    async function(request, response, next) {
+      try {
+        const questionBank = await models.QuestionBank.findOne({
+          include: {
+            model: models.Course,
+            as: 'Course',
+            include: [
+              {
+                model: models.Level,
+                as: 'Level'
+              },
+              {
+                model: models.Program,
+                as: 'Program'
+              },
+              {
+                model: models.Semester,
+                as: 'Semester'
+              }
+            ]
+          },
+          paranoid: false,
+          where: {id: request.params.id}
+        });
+
+        if(!questionBank) return next({name: 'ResourceNotFoundError'});
+
+        await questionBank.restore();
+        return response.respond({
+          name: 'ResourceRestorationSuccess',
+          data: {questionBank}
+        });
+      } catch(error) {
+        return next({
+          name: 'ServerError',
+          error
+        });
+      }
+    }
+  ];
+}
+
 function update() {
   return [
     roleGuard('super_administrator'),
@@ -168,27 +300,51 @@ function update() {
     }),
     async function(request, response, next) {
       try {
-        const questionBank = await models.QuestionBank.findByPk(request.params.id);
+        const questionBank = await models.QuestionBank.findOne({
+          include: {
+            model: models.Course,
+            as: 'Course',
+            include: [
+              {
+                model: models.Level,
+                as: 'Level'
+              },
+              {
+                model: models.Program,
+                as: 'Program'
+              },
+              {
+                model: models.Semester,
+                as: 'Semester'
+              }
+            ]
+          },
+          paranoid: false,
+          where: {id: request.params.id}
+        });
 
         if(!questionBank) return next({name: 'ResourceNotFoundError'});
 
         if('courseId' in request.body) {
-          const course = await models.Course.findByPk(request.body.courseId);
+          const course = await models.Course.findOne({
+            paranoid: false,
+            where: {id: request.body.courseId}
+          });
 
           if(!course) return next({name: 'ResourceNotFoundError'});
         }
 
         if(request.file) {
           const uploadsPath = path.join(__dirname, '../../../../storage/uploads');
-          fs.rm(path.join(uploadsPath, questionBank.file));
+          
+          fs.rm(path.join(uploadsPath, questionBank.file), function(error) {});
           request.body.file = path.relative(uploadsPath, request.file.path);
         }
 
         await questionBank.update(request.body);
-        await questionBank.reload();
         return response.respond({
           name: 'ResourceUpdateSuccess',
-          data: {questionBank: questionBank.toJSON()}
+          data: {questionBank}
         });
       } catch(error) {
         return next({
@@ -202,15 +358,37 @@ function update() {
 
 function view() {
   return [
+    authenticationGuard(),
     async function(request, response, next) {
       try {
-        const questionBank = await models.QuestionBank.findByPk(request.params.id);
+        const questionBank = await models.QuestionBank.findOne({
+          include: {
+            model: models.Course,
+            as: 'Course',
+            include: [
+              {
+                model: models.Level,
+                as: 'Level'
+              },
+              {
+                model: models.Program,
+                as: 'Program'
+              },
+              {
+                model: models.Semester,
+                as: 'Semester'
+              }
+            ]
+          },
+          paranoid: false,
+          where: {id: request.params.id}
+        });
 
         if(!questionBank) return next({name: 'ResourceNotFoundError'});
 
         return response.respond({
           name: 'ResourceRetrievalSuccess',
-          data: {questionBank: questionBank.toJSON()}
+          data: {questionBank}
         });
       } catch(error) {
         return next({
@@ -226,6 +404,8 @@ module.exports = {
   create,
   destroy,
   index,
+  obliterate,
+  restore,
   update,
   view
 };

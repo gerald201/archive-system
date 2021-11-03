@@ -1,4 +1,5 @@
 const models = require('../../../../database/models');
+const authenticationGuard = require('../../guards/authentication');
 const roleGuard = require('../../guards/role');
 const validationGuard = require('../../guards/validation');
 
@@ -24,6 +25,7 @@ function create() {
     async function(request, response, next) {
       try {
         const existingProgram = await models.Program.findOne({
+          paranoid: false,
           where: {name: request.body.name}
         });
   
@@ -52,6 +54,7 @@ function destroy() {
     async function(request, response, next) {
       try {
         const program = await models.Program.findOne({
+          paranoid: false,
           where: {id: request.params.id}
         });
 
@@ -74,10 +77,7 @@ function destroy() {
 
 function index() {
   return [
-    roleGuard([
-      'super_administrator',
-      'student'
-    ]),
+    authenticationGuard(),
     async function(request, response, next) {
       try {
         const attributesQueryData = request.parseDatabaseQuery('attributes', request.query.attributes);
@@ -197,6 +197,7 @@ function update() {
 
         if('name' in request.body) {
           const existingProgram = await models.Program.findOne({
+            paranoid: true,
             where: {name: request.body.name}
           });
 
@@ -204,7 +205,6 @@ function update() {
         }
 
         await program.update(request.body);
-        await program.reload();
         return response.respond({
           name: 'ResourceUpdateSuccess',
           data: {program}
@@ -221,10 +221,7 @@ function update() {
 
 function view() {
   return [
-    roleGuard([
-      'super_administrator',
-      'student'
-    ]),
+    authenticationGuard(),
     async function(request, response, next) {
       try {
         const program = await models.Program.findOne({
@@ -236,7 +233,7 @@ function view() {
 
         return response.respond({
           name: 'RescourceRetrievalSuccess',
-          data: {program: program.toJSON()}
+          data: {program}
         });
       } catch(error) {
         return next({

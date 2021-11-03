@@ -1,4 +1,7 @@
+const fs = require('fs');
+const path = require('path');
 const models = require('../../../../database/models');
+const authenticationGuard = require('../../guards/authentication');
 const roleGuard = require('../../guards/role');
 const validationGuard = require('../../guards/validation');
 
@@ -30,21 +33,45 @@ function create() {
     }),
     async function(request, response, next) {
       try {
-        const user = await models.User.findByPk(request.body.userId);
-        const userProfile = await user?.getProfile();
-        const userProfileType = await userProfile?.getUserProfileType();
+        const student = await models.User.findOne({
+          paranoid: false,
+          where: {
+            id: request.body.userId,
+            '$UserProfile.UserProfileType.name$': 'student'
+          }
+        });
   
-        if(!(user && userProfile && userProfileType) || userProfileType.name != 'student') return next({name: 'ResourceNotFoundError'});
+        if(!student) return next({name: 'ResourceNotFoundError'});
   
         const uploadsPath = path.join(__dirname, '../../../../storage/uploads');
 
         request.body.file = path.relative(uploadsPath, request.file.path);
 
-        const project = await models.Project.create(request.body);
+        const project = await models.Project.create(request.body, {
+          include: {
+            model: models.User,
+            as: 'User',
+            attributes: {
+              exclude: [
+                'hash',
+                'salt'
+              ]
+            },
+            include: {
+              model: models.UserProfile,
+              as: 'UserProfile',
+              include: {
+                model: models.UserProfileType,
+                as: 'UserProfileType'
+              }
+            }
+          }
+        });
   
+        await project.reload();
         return response.respond({
           name: 'ResourceCreationSuccess',
-          data: {project: project.toJSON()}
+          data: {project}
         });
       } catch(error) {
         return next({
@@ -61,15 +88,35 @@ function destroy() {
     roleGuard('super_administrator'),
     async function(request, response, next) {
       try {
-        const project = await models.Project.findByPk(request.params.id);
+        const project = await models.Project.findOne({
+          include: {
+            model: models.User,
+            as: 'User',
+            attributes: {
+              exclude: [
+                'hash',
+                'salt'
+              ]
+            },
+            include: {
+              model: models.UserProfile,
+              as: 'UserProfile',
+              include: {
+                model: models.UserProfileType,
+                as: 'UserProfileType'
+              }
+            }
+          },
+          paranoid: false,
+          where: {id: request.params.id}
+        });
 
         if(!project) return next({name: 'ResourceNotFoundError'});
 
         await project.destroy();
-        await project.reload();
         return response.respond({
           name: 'ResourceDestructionSuccess',
-          data: {project: project.toJSON()}
+          data: {project}
         });
       } catch(error) {
         return next({
@@ -83,10 +130,7 @@ function destroy() {
 
 function index() {
   return [
-    roleGuard([
-      'super_administrator',
-      'student'
-    ]),
+    authenticationGuard(),
     async function(request, response, next) {
       try {
         const attributesQueryData = request.parseDatabaseQuery('attributes', request.query.attributes);
@@ -94,7 +138,7 @@ function index() {
         const orderQueryData = request.parseDatabaseQuery('order', request.query.order);
         const whereQueryData = request.parseDatabaseQuery('where', request.query.where);
         const { limit: limitQueryData, offset: offsetQueryData } = request.parsePagination(request.query.pagination);
-        const databaseQuery = {};
+        const databaseQuery = {paranoid: false};
 
         if(attributesQueryData) databaseQuery.attributes = attributesQueryData;
 
@@ -102,7 +146,21 @@ function index() {
         else {
           databaseQuery.include = {
             model: models.User,
-            as: 'User'
+            as: 'User',
+            attributes: {
+              exclude: [
+                'hash',
+                'salt'
+              ]
+            },
+            include: {
+              model: models.UserProfile,
+              as: 'UserProfile',
+              include: {
+                model: models.UserProfileType,
+                as: 'UserProfileType'
+              }
+            }
           };
         }
 
@@ -119,6 +177,95 @@ function index() {
         return response.respond({
           name: 'ResourceRetrievalSuccess',
           data: {projects}
+        });
+      } catch(error) {
+        return next({
+          name: 'ServerError',
+          error
+        });
+      }
+    }
+  ];
+}
+
+function obliterate() {
+  return [
+    async function(request, response, next) {
+      try {
+        const project = await models.Project.findOne({
+          include: {
+            model: models.User,
+            as: 'User',
+            attributes: {
+              exclude: [
+                'hash',
+                'salt'
+              ]
+            },
+            include: {
+              model: models.UserProfile,
+              as: 'UserProfile',
+              include: {
+                model: models.UserProfileType,
+                as: 'UserProfileType'
+              }
+            }
+          },
+          paranoid: false,
+          where: {id: request.params.id}
+        });
+
+        if(!project) return next({name: 'ResourceNotFoundError'});
+
+        fs.rm(path.join(__dirname, '../../../../storage/uploads', project.file), function(error) {});
+        await project.destroy({force: true});
+        return response.respond({
+          name: 'ResourceObliterationSuccess',
+          data: {project}
+        });
+      } catch(error) {
+        return next({
+          name: 'ServerError',
+          error
+        });
+      }
+    }
+  ];
+}
+
+function restore() {
+  return [
+    async function(request, response, next) {
+      try {
+        const project = await models.Project.findOne({
+          include: {
+            model: models.User,
+            as: 'User',
+            attributes: {
+              exclude: [
+                'hash',
+                'salt'
+              ]
+            },
+            include: {
+              model: models.UserProfile,
+              as: 'UserProfile',
+              include: {
+                model: models.UserProfileType,
+                as: 'UserProfileType'
+              }
+            }
+          },
+          paranoid: false,
+          where: {id: request.params.id}
+        });
+
+        if(!project) return next({name: 'ResourceNotFoundError'});
+
+        await project.restore();
+        return response.respond({
+          name: 'ResourceRestorationSuccess',
+          data: {project}
         });
       } catch(error) {
         return next({
@@ -163,29 +310,54 @@ function update() {
     }),
     async function(request, response, next) {
       try {
-        const project = await models.Project.findByPk(request.params.id);
+        const project = await models.Project.findOne({
+          include: {
+            model: models.User,
+            as: 'User',
+            attributes: {
+              exclude: [
+                'hash',
+                'salt'
+              ]
+            },
+            include: {
+              model: models.UserProfile,
+              as: 'UserProfile',
+              include: {
+                model: models.UserProfileType,
+                as: 'UserProfileType'
+              }
+            }
+          },
+          paranoid: false,
+          where: {id: request.params.id}
+        });
 
         if(!project) return next({name: 'ResourceNotFoundError'});
 
         if('userId' in request.body) {
-          const user = await models.User.findByPk(request.body.userId);
-          const userProfile = await user?.getProfile();
-          const userProfileType = await userProfile?.getUserProfileType();
+          const user = await models.User.findOne({
+            paranoid: false,
+            where: {
+              id: request.body.userId,
+              '$UserProfile.UserProfileType.name$': 'student'
+            }
+          });
 
-          if(!(user && userProfile && userProfileType) || userProfileType.name != 'student') return next({name: 'ResourceNotFoundError'});
+          if(!user) return next({name: 'ResourceNotFoundError'});
         }
 
         if(request.file) {
           const uploadsPath = path.join(__dirname, '../../../../storage/uploads');
-          fs.rm(path.join(uploadsPath, project.file));
+
+          fs.rm(path.join(uploadsPath, project.file), function(error) {});
           request.body.file = path.relative(uploadsPath, request.file.path);
         }
 
         await project.update(request.body);
-        await project.reload();
         return response.respond({
           name: 'ResourceUpdateSuccess',
-          data: {project: project.toJSON()}
+          data: {project}
         });
       } catch(error) {
         return next({
@@ -199,15 +371,37 @@ function update() {
 
 function view() {
   return [
+    authenticationGuard(),
     async function(request, response, next) {
       try {
-        const project = await models.Project.findByPk(request.params.id);
+        const project = await models.Project.findOne({
+          include: {
+            model: models.User,
+            as: 'User',
+            attributes: {
+              exclude: [
+                'hash',
+                'salt'
+              ]
+            },
+            include: {
+              model: models.UserProfile,
+              as: 'UserProfile',
+              include: {
+                model: models.UserProfileType,
+                as: 'UserProfileType'
+              }
+            }
+          },
+          paranoid: false,
+          where: {id: request.params.id}
+        });
 
         if(!project) return next({name: 'ResourceNotFoundError'});
 
         return response.respond({
           name: 'ResourceRetrievalSuccess',
-          data: {project: project.toJSON()}
+          data: {project}
         });
       } catch(error) {
         return next({
@@ -223,6 +417,8 @@ module.exports = {
   create,
   destroy,
   index,
+  obliterate,
+  restore,
   update,
   view
 };

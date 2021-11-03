@@ -16,6 +16,14 @@ router
   .get(controller.index());
 
 router
+  .route('/obliterate/:id')
+  .delete(controller.obliterate());
+
+router
+  .route('/restore/:id')
+  .post(controller.restore());
+
+router
   .route('/update/:id')
   .patch(controller.update());
 

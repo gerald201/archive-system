@@ -1,6 +1,7 @@
 const cors = require('cors');
 const express = require('express');
 const path = require('path');
+const apiKey = require('./api-key');
 const error = require('./error');
 const fallback = require('./fallback');
 const activityLogMiddleware = require('./middleware/activity-log');
@@ -13,6 +14,9 @@ const morgan = require('morgan');
 
 const app = express();
 
+apiKey(app);
+
+// Development Middleware
 app.use(morgan('dev'));
 
 // Default Middleware

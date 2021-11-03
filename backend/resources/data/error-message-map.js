@@ -1,4 +1,8 @@
 module.exports = {
+  ApiKeyError: {
+    status: 400,
+    message: 'The api-key passed with this request is not valid.'
+  },
   AuthenticationConsistencyError: {
     status: 401,
     message: 'There is an inconsistency with the provided authentication credentials.'

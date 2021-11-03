@@ -1,4 +1,5 @@
 const models = require('../../../../database/models');
+const authenticationGuard = require('../../guards/authentication');
 const roleGuard = require('../../guards/role');
 const validationGuard = require('../../guards/validation');
 
@@ -39,10 +40,11 @@ function create() {
     async function(request, response, next) {
       try {
         const existingCourse = await models.Course.findOne({
+          paranoid: false,
           where: {name: request.body.name}
         });
 
-        if(existingCourse) return next({name: 'ResourceNotFoundError'});
+        if(existingCourse) return next({name: 'ResourceUniqueViolationError'});
 
         const level = await models.Level.findByPk(request.body.levelId);
         const program = await models.Program.findByPk(request.body.programId);
@@ -50,7 +52,22 @@ function create() {
 
         if(!(level && program && semester)) return next({name: 'ResourceNotFoundError'});
 
-        const course = await models.Course.create(request.body);
+        const course = await models.Course.create(request.body, {
+          include: [
+            {
+              model: models.Level,
+              as: 'Level'
+            },
+            {
+              model: models.Program,
+              as: 'Program'
+            },
+            {
+              model: models.Semester,
+              as: 'Semester'
+            }
+          ]
+        });
 
         await course.reload();
         return response.respond({
@@ -72,12 +89,28 @@ function destroy() {
     roleGuard('super_administrator'),
     async function(request, response, next) {
       try {
-        const course = models.Course.findByPk(request.params.id);
+        const course = models.Course.findOne({
+          include: [
+            {
+              model: models.Level,
+              as: 'Level'
+            },
+            {
+              model: models.Program,
+              as: 'Program'
+            },
+            {
+              model: models.Semester,
+              as: 'Semester'
+            }
+          ],
+          paranoid: false,
+          where: {id: request.params.id}
+        });
 
         if(!course) return next({name: 'ResourceNotFoundError'});
 
         await course.destroy();
-        await course.reload();
         return response.respond({
           name: 'ResourceDestructionSuccess',
           data: {course}
@@ -94,10 +127,7 @@ function destroy() {
 
 function index() {
   return [
-    roleGuard([
-      'super_administrator',
-      'student'
-    ]),
+    authenticationGuard(),
     async function(request, response, next) {
       try {
         const attributesQueryData = request.parseDatabaseQuery('attributes', request.query.attributes);
@@ -105,7 +135,7 @@ function index() {
         const orderQueryData = request.parseDatabaseQuery('order', request.query.order);
         const whereQueryData = request.parseDatabaseQuery('where', request.query.where);
         const { limit: limitQueryData, offset: offsetQueryData } = request.parsePagination(request.query.pagination);
-        const databaseQuery = {};
+        const databaseQuery = {paranoid: false};
 
         if(attributesQueryData) databaseQuery.attributes = attributesQueryData;
 
@@ -140,6 +170,88 @@ function index() {
         return response.respond({
           name: 'ResourceRetrievalSuccess',
           data: {courses}
+        });
+      } catch(error) {
+        return next({
+          name: 'ServerError',
+          error
+        });
+      }
+    }
+  ];
+}
+
+function obliterate() {
+  return [
+    roleGuard('super_administrator'),
+    async function(request, response, next) {
+      try {
+        const course = models.Course.findOne({
+          include: [
+            {
+              model: models.Level,
+              as: 'Level'
+            },
+            {
+              model: models.Program,
+              as: 'Program'
+            },
+            {
+              model: models.Semester,
+              as: 'Semester'
+            }
+          ],
+          paranoid: false,
+          where: {id: request.params.id}
+        });
+
+        if(!course) return next({name: 'ResourceNotFoundError'});
+
+        await course.destroy({force: true});
+        return response.respond({
+          name: 'RescourceObliterationSuccess',
+          data: {course}
+        });
+      } catch(error) {
+        return next({
+          name: 'ServerError',
+          error
+        });
+      }
+    }
+  ];
+}
+
+function restore() {
+  return [
+    roleGuard('super_administrator'),
+    async function(request, response, next) {
+      try {
+        const course = models.Course.findOne({
+          include: [
+            {
+              model: models.Level,
+              as: 'Level'
+            },
+            {
+              model: models.Program,
+              as: 'Program'
+            },
+            {
+              model: models.Semester,
+              as: 'Semester'
+            }
+          ],
+          paranoid: false,
+          where: {id: request.params.id}
+        });
+
+        if(!course) return next({name: 'ResourceNotFoundError'});
+
+        await course.restore();
+        return response.respond({
+          name: 'RescourceRestorationSuccess',
+          data: {course}
         });
       } catch(error) {
         return next({
@@ -191,41 +303,67 @@ function update() {
     }),
     async function(request, response, next) {
       try {
-        const course = await models.Course.findByPk(request.params.id);
+        const course = models.Course.findOne({
+          include: [
+            {
+              model: models.Level,
+              as: 'Level'
+            },
+            {
+              model: models.Program,
+              as: 'Program'
+            },
+            {
+              model: models.Semester,
+              as: 'Semester'
+            }
+          ],
+          paranoid: false,
+          where: {id: request.params.id}
+        });
 
         if(!course) return next({name: 'ResourceNotFoundError'});
 
         if('name' in request.body) {
           const existingCourse = await models.Course.findOne({
+            paranoid: false,
             where: {name: request.body.name}
           });
 
-          if(existingCourse) return next({name: 'ResourceUniqueViolationError'});
+          if(existingCourse && existingCourse.id != course.id) return next({name: 'ResourceUniqueViolationError'});
         }
 
         if('levelId' in request.body) {
-          const level = await models.Level.findByPk(request.body.levelId);
+          const level = await models.Level.findOne({
+            paranoid: false,
+            where: {id: request.body.levelId}
+          });
 
           if(!level) return next({name: 'ResourceNotFoundError'});
         }
 
         if('programId' in request.body) {
-          const program = await models.Program.findByPk(request.body.programId);
+          const program = await models.Program.findOne({
+            paranoid: false,
+            where: {id: request.body.programId}
+          });
 
           if(!program) return next({name: 'ResourceNotFoundError'});
         }
 
         if('semesterId' in request.body) {
-          const semester = await models.Semester.findByPk(request.body.semesterId);
+          const semester = await models.Semester.findOne({
+            paranoid: false,
+            where: {id: request.body.semesterId}
+          });
 
           if(!semester) return next({name: 'ResourceNotFoundError'});
         }
 
         await course.update(request.body);
-        await course.reload();
         return response.respond({
           name: 'ResourceUpdateSuccess',
-          data: {course: course.toJSON()}
+          data: {course}
         });
       } catch(error) {
         return next({
@@ -239,19 +377,33 @@ function update() {
 
 function view() {
   return [
-    roleGuard([
-      'super_administrator',
-      'student'
-    ]),
+    authenticationGuard(),
     async function(request, response, next) {
       try {
-        const course = await models.Course.findByPk(request.params.id);
+        const course = models.Course.findOne({
+          include: [
+            {
+              model: models.Level,
+              as: 'Level'
+            },
+            {
+              model: models.Program,
+              as: 'Program'
+            },
+            {
+              model: models.Semester,
+              as: 'Semester'
+            }
+          ],
+          paranoid: false,
+          where: {id: request.params.id}
+        });
 
         if(!course) return next({name: 'ResourceNotFoundError'});
 
         return response.respond({
           name: 'RescourceRetrievalSuccess',
-          data: {course: course.toJSON()}
+          data: {course}
         });
       } catch(error) {
         return next({
@@ -267,6 +419,8 @@ module.exports = {
   create,
   destroy,
   index,
+  obliterate,
+  restore,
   update,
   view
 };
