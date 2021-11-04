@@ -64,7 +64,7 @@ function create() {
         await questionBank.reload();
         return response.respond({
           name: 'ResourceCreationSuccess',
-          data: {questionBank}
+          payload: {questionBank}
         });
       } catch(error) {
         return next({
@@ -109,7 +109,7 @@ function destroy() {
         await questionBank.destroy();
         return response.respond({
           name: 'ResourceDestructionSuccess',
-          data: {questionBank}
+          payload: {questionBank}
         });
       } catch(error) {
         return next({
@@ -169,7 +169,7 @@ function index() {
         
         return response.respond({
           name: 'ResourceRetrievalSuccess',
-          data: {questionBanks}
+          payload: {questionBanks}
         });
       } catch(error) {
         return next({
@@ -215,7 +215,7 @@ function obliterate() {
         await questionBank.destroy({force: true});
         return response.respond({
           name: 'ResourceObliterationSuccess',
-          data: {questionBank}
+          payload: {questionBank}
         });
       } catch(error) {
         return next({
@@ -260,7 +260,7 @@ function restore() {
         await questionBank.restore();
         return response.respond({
           name: 'ResourceRestorationSuccess',
-          data: {questionBank}
+          payload: {questionBank}
         });
       } catch(error) {
         return next({
@@ -344,7 +344,7 @@ function update() {
         await questionBank.update(request.body);
         return response.respond({
           name: 'ResourceUpdateSuccess',
-          data: {questionBank}
+          payload: {questionBank}
         });
       } catch(error) {
         return next({
@@ -388,7 +388,7 @@ function view() {
 
         return response.respond({
           name: 'ResourceRetrievalSuccess',
-          data: {questionBank}
+          payload: {questionBank}
         });
       } catch(error) {
         return next({

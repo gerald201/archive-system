@@ -20,7 +20,7 @@ function refresh() {
 
         return response.respond({
           name: 'AuthorizationRenewalSuccess',
-          data: {
+          payload: {
             token: {access: accessToken}
           }
         });
@@ -84,7 +84,7 @@ function signIn() {
 
         return response.respond({
           name: 'AuthenticationSuccess',
-          data: {
+          payload: {
             token: {
               access: accessToken,
               refresh: refteshToken
@@ -143,7 +143,7 @@ function whoami() {
         delete preppedUser.salt;
         return response.respond({
           name: 'AuthorizedUserRetrievalSuccess',
-          data: {user: preppedUser}
+          payload: {user: preppedUser}
         });
       } catch(error) {
         return next({

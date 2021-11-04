@@ -28,7 +28,7 @@ function index() {
 
         return response.respond({
           name: 'ResourceRetrievalSuccess',
-          data: {userProfileTypes}
+          payload: {userProfileTypes}
         });
       } catch(error) {
         return next({
@@ -54,7 +54,7 @@ function view() {
 
         return response.respond({
           name: 'RescourceRetrievalSuccess',
-          data: {userProfileType}
+          payload: {userProfileType}
         });
       } catch(error) {
         return next({

@@ -14,8 +14,6 @@ const morgan = require('morgan');
 
 const app = express();
 
-apiKey(app);
-
 // Development Middleware
 app.use(morgan('dev'));
 
@@ -24,13 +22,15 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({extended: true}));
 
+apiKey(app);
+
 // Custom Middleware
 app.use(activityLogMiddleware());
 app.use(parseDatabaseQueryMiddleware());
 app.use(parsePaginationMiddleware());
 app.use(respondMiddleware());
 
-// Static Middleware
+// // Static Middleware
 app.use('/assets', express.static(path.join(__dirname, '../../public')));
 app.use('/uploads', express.static(path.join(__dirname, '../../storage/uploads')));
 

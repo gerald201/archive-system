@@ -26,7 +26,7 @@ function index() {
 
         return response.respond({
           name: 'ResourceRetrievalSuccess',
-          data: {semesters}
+          payload: {semesters}
         });
       } catch(error) {
         return next({
@@ -52,7 +52,7 @@ function view() {
 
         return response.respond({
           name: 'ResourceRetrievalSuccess',
-          data: {semester}
+          payload: {semester}
         });
       } catch(error) {
         return next({

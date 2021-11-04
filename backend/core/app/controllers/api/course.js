@@ -72,7 +72,7 @@ function create() {
         await course.reload();
         return response.respond({
           name: 'ResourceCreationSuccess',
-          data: {course}
+          payload: {course}
         })
       } catch(error) {
         return next({
@@ -113,7 +113,7 @@ function destroy() {
         await course.destroy();
         return response.respond({
           name: 'ResourceDestructionSuccess',
-          data: {course}
+          payload: {course}
         })
       } catch(error) {
         return next({
@@ -169,7 +169,7 @@ function index() {
 
         return response.respond({
           name: 'ResourceRetrievalSuccess',
-          data: {courses}
+          payload: {courses}
         });
       } catch(error) {
         return next({
@@ -210,7 +210,7 @@ function obliterate() {
         await course.destroy({force: true});
         return response.respond({
           name: 'RescourceObliterationSuccess',
-          data: {course}
+          payload: {course}
         });
       } catch(error) {
         return next({
@@ -251,7 +251,7 @@ function restore() {
         await course.restore();
         return response.respond({
           name: 'RescourceRestorationSuccess',
-          data: {course}
+          payload: {course}
         });
       } catch(error) {
         return next({
@@ -363,7 +363,7 @@ function update() {
         await course.update(request.body);
         return response.respond({
           name: 'ResourceUpdateSuccess',
-          data: {course}
+          payload: {course}
         });
       } catch(error) {
         return next({
@@ -403,7 +403,7 @@ function view() {
 
         return response.respond({
           name: 'RescourceRetrievalSuccess',
-          data: {course}
+          payload: {course}
         });
       } catch(error) {
         return next({

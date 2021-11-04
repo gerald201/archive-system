@@ -36,7 +36,7 @@ function create() {
         await program.reload();
         return response.respond({
           name: 'ResourceCreationSuccess',
-          data: {program}
+          payload: {program}
         });
       } catch(error) {
         return next({
@@ -63,7 +63,7 @@ function destroy() {
         await program.destroy();
         return response.respond({
           name: 'ResourceDestructionSuccess',
-          data: {program}
+          payload: {program}
         });
       } catch(error) {
         return next({
@@ -100,7 +100,7 @@ function index() {
 
         return response.respond({
           name: 'ResourceRetrievalSuccess',
-          data: {programs}
+          payload: {programs}
         });
       } catch(error) {
         return next({
@@ -127,7 +127,7 @@ function obliterate() {
         await program.destroy({force: true});
         return response.respond({
           name: 'ResourceObliterationSuccess',
-          data: {program}
+          payload: {program}
         });
       } catch(error) {
         return next({
@@ -154,7 +154,7 @@ function restore() {
         await program.restore();
         return response.respond({
           name: 'ResourceRestorationSuccess',
-          data: {program}
+          payload: {program}
         });
       } catch(error) {
         return next({
@@ -207,7 +207,7 @@ function update() {
         await program.update(request.body);
         return response.respond({
           name: 'ResourceUpdateSuccess',
-          data: {program}
+          payload: {program}
         });
       } catch(error) {
         return next({
@@ -233,7 +233,7 @@ function view() {
 
         return response.respond({
           name: 'RescourceRetrievalSuccess',
-          data: {program}
+          payload: {program}
         });
       } catch(error) {
         return next({

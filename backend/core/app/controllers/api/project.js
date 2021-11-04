@@ -71,7 +71,7 @@ function create() {
         await project.reload();
         return response.respond({
           name: 'ResourceCreationSuccess',
-          data: {project}
+          payload: {project}
         });
       } catch(error) {
         return next({
@@ -116,7 +116,7 @@ function destroy() {
         await project.destroy();
         return response.respond({
           name: 'ResourceDestructionSuccess',
-          data: {project}
+          payload: {project}
         });
       } catch(error) {
         return next({
@@ -176,7 +176,7 @@ function index() {
         
         return response.respond({
           name: 'ResourceRetrievalSuccess',
-          data: {projects}
+          payload: {projects}
         });
       } catch(error) {
         return next({
@@ -221,7 +221,7 @@ function obliterate() {
         await project.destroy({force: true});
         return response.respond({
           name: 'ResourceObliterationSuccess',
-          data: {project}
+          payload: {project}
         });
       } catch(error) {
         return next({
@@ -265,7 +265,7 @@ function restore() {
         await project.restore();
         return response.respond({
           name: 'ResourceRestorationSuccess',
-          data: {project}
+          payload: {project}
         });
       } catch(error) {
         return next({
@@ -357,7 +357,7 @@ function update() {
         await project.update(request.body);
         return response.respond({
           name: 'ResourceUpdateSuccess',
-          data: {project}
+          payload: {project}
         });
       } catch(error) {
         return next({
@@ -401,7 +401,7 @@ function view() {
 
         return response.respond({
           name: 'ResourceRetrievalSuccess',
-          data: {project}
+          payload: {project}
         });
       } catch(error) {
         return next({

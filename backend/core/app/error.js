@@ -16,7 +16,7 @@ function main(app) {
           .replace(/([A-Z])/, ' $1')
           .trim(),
         message: messageData.message,
-        data: {
+        payload: {
           errorType: name,
           error: error?.error ? {...error.error} : null
         }

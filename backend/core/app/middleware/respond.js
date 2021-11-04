@@ -14,7 +14,7 @@ function main() {
               .replace(/([A-Z])/, ' $1')
               .trim(),
             message: messageData.message,
-            data: options?.data ?? null
+            payload: options?.payload ?? null
           });
       }
 
