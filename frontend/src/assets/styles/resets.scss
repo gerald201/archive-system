@@ -1,0 +1,13 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+  transition-duration: 120ms;
+  transition-property: background-color, color;
+  transition-timing-function: ease-out;
+}
+html {
+  overflow-x: hidden;
+}
+body {
+  margin: 0rem;
+  padding: 0rem;
+}
