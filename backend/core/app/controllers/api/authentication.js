@@ -119,10 +119,8 @@ function signOut() {
             userId: request.user.id
           }
         });
-
         return response.respond({name: 'AuthorizationRevocationSuccess'});
       } catch(error) {
-        console.log(error);
         return next({
           name: 'ServerError',
           error

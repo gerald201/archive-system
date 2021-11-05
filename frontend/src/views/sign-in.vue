@@ -11,7 +11,14 @@
           Sign In
         </h3>
 
-        <form @submit.prevent="submit();">
+        <form
+          @input="
+            if(typeof formDataStates[$event.target.name]?.changed == 'boolean') formDataStates[$event.target.name].changed = true;
+
+            validateForm();
+          "
+          @submit.prevent="submitForm();"
+        >
           <div class="mb-3">
             <label
               class="form-label"
@@ -21,12 +28,26 @@
             </label>
             <input
               class="form-control"
+              :class="{'is-invalid': formDataStates.index.errors.length}"
+              :disabled="processing"
               id="sign-in-view-form-index-field"
               name="index"
               placeholder="040123456"
               type="text"
               v-model="formData.index"
             >
+            <div
+              class="invalid-feedback"
+              v-if="formDataStates.index.errors.length"
+            >
+              <div
+                :key="error.type"
+                v-for="error in formDataStates.index.errors"
+              >
+                <b>{{error.type}}:</b>
+                {{error.message}}
+              </div>
+            </div>
           </div>
           <div class="mb-3">
             <label
@@ -37,17 +58,38 @@
             </label>
             <input
               class="form-control"
+              :class="{'is-invalid': formDataStates.password.errors.length}"
+              :disabled="processing"
               id="sign-in-view-form-password-field"
               name="password"
               type="password"
               v-model="formData.password"
             >
+            <div
+              class="invalid-feedback"
+              v-if="formDataStates.password.errors.length"
+            >
+              <div
+                :key="error.type"
+                v-for="error in formDataStates.password.errors"
+              >
+                <b>{{error.type}}:</b>
+                {{error.message}}
+              </div>
+            </div>
           </div>
           <div class="d-grid">
             <button
               class="btn btn-primary"
+              :disabled="processing"
               type="submit"
             >
+              <span
+                aria-hidden="true"
+                class="spinner-grow spinner-grow-sm"
+                role="status"
+                v-if="processing"
+              ></span>
               Sign In!
             </button>
           </div>
@@ -58,7 +100,7 @@
 </template>
 
 <script>
-import { reactive } from 'vue';
+import { reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useStore } from 'vuex';
 import { validate } from '@/services/fastest-validator';
@@ -69,41 +111,102 @@ export default {
     const $router = useRouter();
     const $store = useStore();
 
+    const validationSchema = {
+      $$strict: 'remove',
+      index: {
+        type: 'string',
+        empty: false
+      },
+      password: {
+        type: 'string',
+        empty: false
+      }
+    };
+
     const formData = reactive({
       index: '',
       password: ''
     });
+    const formDataStates = reactive({
+      index: {
+        changed: false,
+        errors: []
+      },
+      password: {
+        changed: false,
+        errors: []
+      }
+    });
+    const processing = ref(false);
 
-    async function submit() {
-      const schema = {
-        $$strict: 'remove',
-        index: {
-          type: 'string',
-          empty: false
-        },
-        password: {
-          type: 'string',
-          empty: false
-        }
-      };
-      const validated = validate(formData, schema);
+    function resetForm(options) {
+      options = options?.constructor?.name?.toLowerCase() == 'object' ? options : (Array.isArray(options) ? {include: options} : (typeof options == 'string' ? {include: [options]} : {}));
+      options.exclude = (Array.isArray(options?.exclude) ? options.exclude : (typeof options?.exclude == 'string' ? [options.exclude] : []));
+      options.include = (Array.isArray(options?.include) ? options.include : (typeof options?.include == 'string' ? [options.include] : Object.keys(formData)));
 
-      console.log('VALIDATED', validated);
+      options.include
+        .filter(function(field) {
+          return Object.keys(formData).includes(field) && !options.exclude.includes(field);
+        })
+        .forEach(function(field) {
+          formData[field] = '';
+          formDataStates[field].changed = false;
+          formDataStates[field].errors = [];
+        });
+    }
 
-      if(validated !== true) return;
+    async function submitForm() {
+      if(processing.value) return;
 
-      console.log('FORM DATA', formData);
+      processing.value = true;
+
+      if(!validateForm()) {
+        processing.value = false;
+        return;
+      }
 
       const signedIn = await $store.dispatch('authenticationSignIn', formData);
 
-      console.log('SIGNED IN', signedIn);
+      if(signedIn) {
+        resetForm();
+        await $router.push({name: 'Dashboard'});
+      }
+      else resetForm('password');
 
-      if(signedIn) return await $router.push({name: 'Dashboard'});
+      processing.value = false;
+    }
+
+    function validateForm() {
+      const validated = validate(formData, validationSchema);
+
+      for(const field in formDataStates) {
+        formDataStates[field].errors = [];
+      }
+
+      if(validated === true) return true;
+
+      validated
+        .forEach(function(error) {
+          if(!Array.isArray(formDataStates[error.field]?.errors) || !formDataStates[error.field].changed) return;
+
+          const check = formDataStates[error.field].errors
+            .findIndex(function(formError) {
+              return formError.type == error.type
+            }) < 0;
+
+          if(!check) return;
+
+          formDataStates[error.field].errors.push(error);
+        });
+      return false;
     }
 
     return {
       formData,
-      submit
+      formDataStates,
+      processing,
+      submitForm,
+      validateForm
     };
   }
 }
@@ -112,6 +215,7 @@ export default {
 <style lang="scss" scoped>
 .g-sign-in-view {
   height: var(--content-viewport);
+  transition-property: height;
 
   & > .card {
     max-width: 25rem;

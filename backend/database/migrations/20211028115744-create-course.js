@@ -27,7 +27,7 @@ async function up(queryInterface, Sequelize) {
       allowNull: false,
       type: Sequelize.INTEGER
     },
-    semisterId: {
+    semesterId: {
       allowNull: false,
       type: Sequelize.INTEGER
     },

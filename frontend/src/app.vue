@@ -4,6 +4,8 @@
     <g-application-loader v-else-if="$store.state.application.loading"></g-application-loader>
     <g-application-main v-else></g-application-main>
   </transition>
+
+  <g-application-toast></g-application-toast>
 </template>
 
 <script>
@@ -13,12 +15,14 @@ import { useStore } from 'vuex';
 import GApplicationError from '@/components/application-error';
 import GApplicationLoader from '@/components/application-loader';
 import GApplicationMain from '@/components/application-main';
+import GApplicationToast from '@/components/application-toast';
 
 export default {
   components: {
     GApplicationError,
     GApplicationLoader,
-    GApplicationMain
+    GApplicationMain,
+    GApplicationToast,
   },
   name: 'GApp',
   setup() {
@@ -66,9 +70,18 @@ export default {
   transform: scale(0.9) !important;
 }
 
+.g-transform-application-main-aside-enter-active,
+.g-transform-application-main-aside-leave-active {
+  transition-property: opacity, transform !important;
+}
+.g-transform-application-main-aside-enter-from,
+.g-transform-application-main-aside-leave-to {
+  opacity: 0 !important;
+  transform: translateX(-16rem) !important;
+}
+
 .g-transform-application-main-header-enter-active,
 .g-transform-application-main-header-leave-active {
-  position: absolute !important;
   transition-property: opacity, transform !important;
 }
 .g-transform-application-main-header-enter-from,
@@ -79,6 +92,7 @@ export default {
 
 .g-transition-router-view-enter-active,
 .g-transition-router-view-leave-active {
+  position: absolute !important;
   transition-property: opacity, transform !important;
 }
 .g-transition-router-view-enter-from {
@@ -88,5 +102,14 @@ export default {
 .g-transition-router-view-leave-to {
   opacity: 0 !important;
   transform: scale(0.9) !important;
+}
+
+.g-transform-application-main-shadow-enter-active,
+.g-transform-application-main-shadow-leave-active {
+  transition-property: opacity !important;
+}
+.g-transform-application-main-shadow-enter-from,
+.g-transform-application-main-shadow-leave-to {
+  opacity: 0 !important;
 }
 </style>

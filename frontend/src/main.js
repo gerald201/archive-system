@@ -4,6 +4,7 @@ import bootstrap from '@/bootstrap';
 import router from '@/router';
 import store from '@/store';
 
+import '@/assets/icon-fonts/feather/style.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap';
 import '@/assets/styles/resets.scss';

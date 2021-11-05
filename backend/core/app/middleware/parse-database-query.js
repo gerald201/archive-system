@@ -1,32 +1,11 @@
 const models = require('../../../database/models');
 
 function parseAttributes(data) {
-  if(data?.constructor?.name?.toLowerCase() == 'object' && ('exclude' in data || 'include' in data)) {
-    const result = {};
-
-    if('exclude' in data) {
-      result.exclude = (Array.isArray(data.exclude) ? data.exclude : [data.exclude])
-        .filter(function(excluded) {
-          return excluded && typeof excluded == 'string';
-        });
-    }
-    
-    if('include' in data) {
-      result.include = (Array.isArray(data.include) ? data.include : [data.include])
-        .filter(function(included) {
-          return included && typeof included == 'string';
-        });
-    }
-
-    return (result.exclude?.length || result.include?.length) ? result : null;
-  }
-
-  const result = (Array.isArray(data) ? data : [data])
-    .filter(function(subData) {
-      return subData && typeof subData == 'string';
-    });
-
-  return result.length ? {include: result} : null;
+  data = data?.constructor?.name?.toLowerCase() == 'object' ? data : (Array.isArray(data) ? {include: data} : (typeof data == 'string' ? {include: [data]} : {}));
+  data.exclude = (Array.isArray(data?.exclude) ? data.exclude : (typeof data?.exclude == 'string' ? [options.exclude] : []));
+  data.include = (Array.isArray(data?.include) ? data.include : (typeof data?.include == 'string' ? [data.include] : [])); 
+  
+  return (data.include.length || data.exclude.length) ? data : null;
 }
 
 function parseInclude(data) {
@@ -37,7 +16,7 @@ function parseInclude(data) {
     .map(function(subData) {
       const attributesQueryData = parseAttributes(subData.attributes);
       const includeQueryData = parseInclude(subData.include);
-      const orderQueryData = parseAttributes(subData.order);
+      const orderQueryData = parseOrder(subData.order);
       const whereQueryData = parseWhere(subData.where);
       const result = {};
 

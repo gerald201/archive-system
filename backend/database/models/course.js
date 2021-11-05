@@ -33,7 +33,7 @@ function main(sequelize, DataTypes) {
     description: DataTypes.STRING,
     levelId: DataTypes.INTEGER,
     ProgramId: DataTypes.INTEGER,
-    SemesterId: DataTypes.INTEGER
+    semesterId: DataTypes.INTEGER
   }, {
     sequelize,
     modelName: 'Course',

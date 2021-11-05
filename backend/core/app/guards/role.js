@@ -6,16 +6,18 @@ function main(options) {
     authenticationGuard(),
     async function(request, response, next) {
       try {
-        options = options?.constructor?.name?.toLowerCase() == 'object' ? options : (Array.isArray(options) ? {include: options} : (typeof options == 'string' ? [options] : options));
+        options = options?.constructor?.name?.toLowerCase() == 'object' ? options : (Array.isArray(options) ? {include: options} : (typeof options == 'string' ? {include: [options]} : {}));
+        options.exclude = (Array.isArray(options?.exclude) ? options.exclude : (typeof options?.exclude == 'string' ? [options.exclude] : []));
+        options.include = (Array.isArray(options?.include) ? options.include : (typeof options?.include == 'string' ? [options.include] : []));
 
         const roleNames = await models.Role.findAll({
           attributes: ['name']
         });
-        const excludedRoleNames = (Array.isArray(options?.exclude) ? options.exclude : (typeof options?.exclude == 'string' ? [options.exclude] : []))
+        const excludedRoleNames = options.exclude
           .filter(function(roleName) {
             return roleNames.includes(roleName) && !includedRoleNames.includes(roleName);
           });
-        const includedRoleNames = (Array.isArray(options?.include) ? options?.include : (typeof options.include == 'string' ? [options.include] : []))
+        const includedRoleNames = options.include
           .filter(function(roleName) {
             return roleNames.includes(roleName);
           });

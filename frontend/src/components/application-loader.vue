@@ -1,6 +1,10 @@
 <template>
   <div class="g-application-loader align-items-center bg-primary d-flex flex-column h-100 justify-content-center left-0 position-fixed top-0 w-100">
-    <div class="spinner-border text-light" role="status"></div>
+    <div
+      aria-hidden="true"
+      class="spinner-border text-light"
+      role="status"
+    ></div>
     <h5 class="text-light text-center">
       Loading...
     </h5>

@@ -4,12 +4,12 @@ const path = require('path');
 const apiKey = require('./api-key');
 const error = require('./error');
 const fallback = require('./fallback');
-const activityLogMiddleware = require('./middleware/activity-log');
 const parseDatabaseQueryMiddleware = require('./middleware/parse-database-query');
 const parsePaginationMiddleware = require('./middleware/parse-pagination');
 const respondMiddleware = require('./middleware/respond');
 const router = require('./router');
 
+// Development Dependency
 const morgan = require('morgan');
 
 const app = express();
@@ -25,12 +25,11 @@ app.use(express.urlencoded({extended: true}));
 apiKey(app);
 
 // Custom Middleware
-app.use(activityLogMiddleware());
 app.use(parseDatabaseQueryMiddleware());
 app.use(parsePaginationMiddleware());
 app.use(respondMiddleware());
 
-// // Static Middleware
+// Static Middleware
 app.use('/assets', express.static(path.join(__dirname, '../../public')));
 app.use('/uploads', express.static(path.join(__dirname, '../../storage/uploads')));
 
