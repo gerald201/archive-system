@@ -2,10 +2,41 @@
   <div class="g-application-main left-0 position-absolute top-0 w-100">
     <transition name="g-transform-application-main-aside">
       <div
-        class="aside border-end position-fixed shadow-sm top-0"
+        class="aside bg-primary border-end position-fixed shadow-sm top-0"
         :class="{'state:opened': $store.state.application.mainAsideOpened}"
         v-if="!$store.state.application.mainAsideHidden"
-      ></div>
+      >
+        <perfect-scrollbar class="scroll h-100 w-100">
+          <div class="logo-container align-items-center d-flex justify-content-center p-3">
+            <img
+              alt=""
+              class="logo rounded"
+              :src="`${apiUrl}/assets/images/gctu-logo.jpg`"
+            >
+          </div>
+          <div class="body px-2 w-100" aria-label="Docs navigation">
+            <ul class="list-unstyled mb-0 py-3">
+              <li>
+                <router-link
+                  class="link btn btn-sm fs-5 rounded text-light"
+                  tag="li"
+                  :to="{name: 'Dashboard'}"
+                >
+                  Dashboard
+                </router-link>
+              </li>
+              <li>
+                <button
+                  class="link btn btn-sm fs-5 rounded text-light"
+                  :to="{name: 'Dashboard'}"
+                >
+                  Projects
+                </button>
+              </li>
+            </ul>
+          </div>
+        </perfect-scrollbar>
+      </div>
     </transition>
 
     <transition name="g-transform-application-main-shadow">
@@ -70,8 +101,20 @@
 </template>
 
 <script>
+import { PerfectScrollbar } from 'vue3-perfect-scrollbar';
+import { computed } from 'vue';
+import apiConfiguration from '@/configuration/api';
+
 export default {
-  name: 'GApplicationMain'
+  components: {PerfectScrollbar},
+  name: 'GApplicationMain',
+  setup() {
+    const apiUrl = computed(function() {
+      return apiConfiguration.url;
+    });
+
+    return {apiUrl};
+  }
 }
 </script>
 
@@ -87,16 +130,38 @@ export default {
     }
   }
   & > .aside {
-    background-color: rgba(var(--bs-body-bg-rgb), 0.95);
     height: 100vh;
     left: var(--self__left);
     transition-property: left;
     width: 16rem;
     z-index: 4;
+
+    & > .scroll {
+      & > .logo-container {
+        height: 12rem;
+        width: 100%;
+        
+        & > .logo {
+          height: 100%;
+        }
+      }
+
+      & > .body {
+        transition-property: background-color, border;
+        .link {
+          &:where(:hover) {
+            background-color: rgba(var(--bs-light-rgb), 0.25);
+          }
+          &:where(:focus) {
+            border: 1px solid rgba(var(--bs-light-rgb), 0.75);
+          }
+        }
+      }
+    }
   }
 
   & > .shadow {
-    background-color: rgba(var(--bs-body-color-rgb), 0.1);
+    background-color: rgba(var(--bs-body-color-rgb), 0.2);
     height: 100vh;
     z-index: 3;
   }

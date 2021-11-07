@@ -4,7 +4,7 @@
       <img
         alt="placeholder"
         class="mt-3 mx-auto rounded w-50"
-        src="https://via.placeholder.com/150"
+        :src="`${apiUrl}/assets/images/gctu-logo.jpg`"
       >
       <div class="card-body">
         <h3 class="text-center text-primary">
@@ -100,9 +100,10 @@
 </template>
 
 <script>
-import { reactive, ref } from 'vue';
+import { computed, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useStore } from 'vuex';
+import apiConfiguration from '@/configuration/api';
 import { validate } from '@/services/fastest-validator';
 
 export default {
@@ -138,6 +139,10 @@ export default {
       }
     });
     const processing = ref(false);
+
+    const apiUrl = computed(function() {
+      return apiConfiguration.url;
+    });
 
     function resetForm(options) {
       options = options?.constructor?.name?.toLowerCase() == 'object' ? options : (Array.isArray(options) ? {include: options} : (typeof options == 'string' ? {include: [options]} : {}));
@@ -202,6 +207,7 @@ export default {
     }
 
     return {
+      apiUrl,
       formData,
       formDataStates,
       processing,
