@@ -12,9 +12,7 @@ function parseValue(value) {
       return index > 0;
     })
     .reduce(function(accumulator, match) {
-      const matchAsInt = parseInt(match);
-
-      return accumulator * (isNaN(matchAsInt) ? (jwtConfigurationValueMap[match] || 0) : matchAsInt);
+      return accumulator * (isNaN(parseInt(match)) ? (jwtConfigurationValueMap[match] || 0) : parseInt(match));
     }, 1);
 }
 

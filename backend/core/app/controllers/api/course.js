@@ -46,9 +46,18 @@ function create() {
 
         if(existingCourse) return next({name: 'ResourceUniqueViolationError'});
 
-        const level = await models.Level.findByPk(request.body.levelId);
-        const program = await models.Program.findByPk(request.body.programId);
-        const semester = await models.Semester.findByPk(request.body.semesterId);
+        const level = await models.Level.findOne({
+          paranoid: false,
+          id: request.body.levelId
+        });
+        const program = await models.Program.findOne({
+          paranoid: false,
+          id: request.body.programId
+        });
+        const semester = await models.Semester.findOne({
+          paranoid: false,
+          id: request.body.semesterId
+        });
 
         if(!(level && program && semester)) return next({name: 'ResourceNotFoundError'});
 
@@ -73,7 +82,7 @@ function create() {
         return response.respond({
           name: 'ResourceCreationSuccess',
           payload: {course}
-        })
+        });
       } catch(error) {
         return next({
           name: 'ServerError',
@@ -114,7 +123,7 @@ function destroy() {
         return response.respond({
           name: 'ResourceDestructionSuccess',
           payload: {course}
-        })
+        });
       } catch(error) {
         return next({
           name: 'ServerError',

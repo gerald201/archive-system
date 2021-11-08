@@ -1,6 +1,6 @@
 function index() {
   return [
-    function(request, response, next) {
+    function(request, response) {
       return response.respond();
     }
   ];

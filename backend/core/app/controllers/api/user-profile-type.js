@@ -1,7 +1,5 @@
 const models = require('../../../../database/models');
 const authenticationGuard = require('../../guards/authentication');
-const roleGuard = require('../../guards/role');
-const validationGuard = require('../../guards/validation');
 
 function index() {
   return [

@@ -6,7 +6,7 @@ function main(app) {
   });
   
   app.use(function(error, request, response, next) {
-    const name = ((error?.name?.toString() ?? '') in errorMessageMap) ? error.name: 'RequestError';
+    const name = ((error?.name ?? '') in errorMessageMap) ? error.name: 'RequestError';
     const messageData = errorMessageMap[name];
 
     return response

@@ -7,7 +7,7 @@ const mimetypeMap = require('../../../resources/data/mimetype-map');
 const { validate: validateBody } = require('../../../services/fastest-validator');
 
 const rootDestination = path.join(__dirname, '../../../storage/uploads');
-const validHandlers = [
+const handlers = [
   'any',
   'array',
   'fields',
@@ -19,7 +19,7 @@ const fileSizeLimit = /^(\d+)(\w)?$/
     return index > 0;
   })
   .reduce(function(accumulator, match) {
-    return accumulator * (!match ? 1 : (isNaN(match) ? (fileSizeValueMap[match] || 0) : parseInt(match)));
+    return accumulator * (isNaN(parseInt(match)) ? (fileSizeValueMap[match] || 0) : parseInt(match));
   }, 1);
 
 function filterFileType(file, schemaRule) {
@@ -53,16 +53,16 @@ function validateFileSize(file, schemaRule, isArray = false) {
   if(!file) return true;
 
   if(isArray) {
-    file = file
-      .filter(function(file) {
-        return file.name != schemaRule.name;
+    const preppedFiles = file
+      .filter(function(preppedFile) {
+        return preppedFile.name != schemaRule.name;
       });
 
-    if(!file.length) return true;
+    if(!preppedFiles.length) return true;
 
-    return file
-      .every(function(individualFile) {
-        return schemaRule.size <= 0 || individualFile.size <= schemaRule.size;
+    return preppedFiles
+      .every(function(preppedFile) {
+        return schemaRule.size <= 0 || preppedFile.size <= schemaRule.size;
       });
   }
 
@@ -75,22 +75,22 @@ function validateFileType(file, schemaRule, isArray = false) {
   if(!file) return true;
 
   if(isArray) {
-    file = file
-      .filter(function(file) {
-        return file.name != schemaRule.name;
+    const preppedFiles = file
+      .filter(function(preppedFile) {
+        return preppedFile.name != schemaRule.name;
       });
 
-    if(!file.length) return true;
+    if(!preppedFiles.length) return true;
 
-    return file
-      .every(function(individualFile) {
+    return preppedFiles
+      .every(function(preppedFile) {
         const fileExtension = path
-          .extname(individualFile.originalname)
+          .extname(preppedFile.originalname)
           .replace('.', '');
         const extensionsCheck = !(schemaRule.extensions.length || schemaRule.mimetypes.length) || schemaRule.extensions.includes(fileExtension);
         const mimetypeCheck = !(schemaRule.extensions.length || schemaRule.mimetypes.length) || schemaRule.mimetypes
           .some(function(mimetype) {
-            return (new RegExp(mimetype, 'gi')).test(individualFile.mimetype);
+            return (new RegExp(mimetype, 'gi')).test(preppedFile.mimetype);
           });
 
         return (extensionsCheck || mimetypeCheck) || {
@@ -194,20 +194,18 @@ function main(options) {
   const middleware = [];
   const fileOptions = {};
   const bodyOptions = {};
-  const rawFileSchema = options?.file?.schema && typeof options.file.schema == 'object' && !Array.isArray(options.file.schema) ? options.file.schema : {};
+  const rawFileSchema = options?.file?.schema ? options.file.schema : {};
 
-  bodyOptions.schema = options?.body?.schema && typeof options.body.schema == 'object' && !Array.isArray(options.body.schema) ? options.body.schema : {};
+  bodyOptions.schema = options?.body?.schema ? options.body.schema : {};
 
-  fileOptions.handler = validHandlers.includes(options?.file?.handler) ? options.file.handler : '';
+  fileOptions.handler = handlers.includes(options?.file?.handler) ? options.file.handler : '';
   fileOptions.destination = typeof options?.file?.destination == 'string' ? path.join(rootDestination, options.file.destination) : null;
   fileOptions.schema = [];
 
   for(const field in rawFileSchema) {
-    if(typeof rawFileSchema[field] != 'object' || Array.isArray(rawFileSchema[field])) continue;
-
     fileOptions.schema.push({
       name: field,
-      maxCount: typeof rawFileSchema[field].maxCount == 'number' && rawFileSchema[field].maxCount > 0 ? rawFileSchema[field].maxCount : 1,
+      maxCount: (!isNaN(parseInt(rawFileSchema[field].maxCount)) && parseInt(rawFileSchema[field].maxCount) > 0) ? parseInt(rawFileSchema[field].maxCount) : 1,
       extensions: (Array.isArray(rawFileSchema[field].extensions) ? rawFileSchema[field].extensions : (typeof rawFileSchema[field].extensions == 'string' ? [rawFileSchema[field].extensions] : []))
         .filter(function(extension) {
           return typeof extension == 'string' && extension in mimetypeMap;
@@ -230,7 +228,7 @@ function main(options) {
             return index > 0;
           })
           .reduce(function(accumulator, match) {
-            return accumulator * (!match ? 1 : (isNaN(match) ? (fileSizeValueMap[match] || 0) : parseInt(match)));
+            return accumulator * (isNaN(parseInt(match)) ? (fileSizeValueMap[match] || 0) : parseInt(parseInt(match)));
           }, 1)
     });
   }
