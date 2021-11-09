@@ -17,6 +17,13 @@ export default [
     component: HomeView
   },
   {
+    name: 'Projects',
+    path: '/projects',
+    component() {
+      return import('@/views/projects');
+    }
+  },
+  {
     name: 'SignIn',
     path: '/sign-in',
     component() {

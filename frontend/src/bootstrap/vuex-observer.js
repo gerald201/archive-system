@@ -17,20 +17,6 @@ function main(store) {
     cache.authenticationToken = value;
     localStorage.setItem('cache', encrypt(JSON.stringify(cache)));
   }, {deep: true});
-
-  store.watch(function(state, getters) {
-    return getters.authenticated;
-  }, async function(value) {
-    if(value) {
-      await store.dispatch('getProjectsFromApi');
-      await store.dispatch('getQuestionBanksFromApi');
-      await store.dispatch('getStudentsFromApi');
-    } else {
-      store.commit('SET_STORAGE_PROJECTS', []);
-      store.commit('SET_STORAGE_QUESTION_BANKS', []);
-      store.commit('SET_STORAGE_STUDENTS', []);
-    }
-  });
 }
 
 export default main;

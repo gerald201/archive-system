@@ -1,5 +1,5 @@
 <template>
-  <div class="g-sign-in-view align-items-center d-flex justify-content-center w-100">
+  <div class="g-sign-in-view align-items-center d-flex justify-content-center py-5 w-100">
     <div class="card my-3">
       <img
         alt="placeholder"
@@ -220,7 +220,6 @@ export default {
 
 <style lang="scss" scoped>
 .g-sign-in-view {
-  height: var(--content-viewport);
   transition-property: height;
 
   & > .card {

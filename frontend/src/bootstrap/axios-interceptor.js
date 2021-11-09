@@ -15,10 +15,6 @@ function main(store) {
   });
 
   axios.interceptors.response.use(function(response) {
-    emitter.emit('application:toast', {
-      title: response.data.title,
-      message: response.data.message
-    });
     return response;
   }, async function(error) {
     const request = error.config;
@@ -26,12 +22,19 @@ function main(store) {
     if(error.response?.data.payload.errorType == 'AuthorizationNotFoundError') {
       if(!request.$$refreshed && store.getters.authenticationRefreshTokenAvailable) {
         request.$$refreshed = true;
-        await store.dispatch('authenticationRefresh');
-        return await axios(request);
+        const authenticationRefreshed = await store.dispatch('authenticationRefresh');
+        
+        if(authenticationRefreshed) return await axios(request);
       }
-      
+
       store.commit('SET_STORAGE_AUTHENTICATION_TOKEN', null);
       store.commit('SET_STORAGE_AUTHENTICATION_USER', null);
+      store.commit('SET_STORAGE_PROJECT_COUNT', null);
+      store.commit('SET_STORAGE_PROJECTS', null);
+      store.commit('SET_STORAGE_QUESTION_BANK_COUNT', null);
+      store.commit('SET_STORAGE_QUESTION_BANKS', null);
+      store.commit('SET_STORAGE_STUDENT_COUNT', null);
+      store.commit('SET_STORAGE_STUDENTS', null);
     }
     else if(!error.response || error.response.status >= 500) store.commit('SET_APPLICATION_ERROR', true);
 

@@ -93,6 +93,7 @@ export default {
 .g-transition-router-view-enter-active,
 .g-transition-router-view-leave-active {
   position: absolute !important;
+  transform-origin: center !important;
   transition-property: opacity, transform !important;
 }
 .g-transition-router-view-enter-from {

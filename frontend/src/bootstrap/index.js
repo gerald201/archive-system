@@ -27,14 +27,13 @@ async function main(router, store) {
     try {
       axios.get('/ping');
     } finally {
-      if(store.state.application.error) {
-        store.commit('SET_APPLICATION_LOADING', false);
-        store.commit('SET_APPLICATION_INITIALIZED', true);
-      } else {
+      store.commit('SET_APPLICATION_INITIALIZED', true);
+      
+      if(store.state.application.error) store.commit('SET_APPLICATION_LOADING', false);
+      else {
         if(store.getters.authenticationAccessTokenAvailable) await store.dispatch('authenticationWhoami');
   
         store.commit('SET_APPLICATION_LOADING', false);
-        store.commit('SET_APPLICATION_INITIALIZED', true);
   
         const currentRoute = router.currentRoute.value;
   

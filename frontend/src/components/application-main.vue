@@ -14,24 +14,27 @@
               :src="`${apiUrl}/assets/images/gctu-logo.jpg`"
             >
           </div>
-          <div class="body px-2 w-100" aria-label="Docs navigation">
+          <div
+            aria-label="Docs navigation"
+            class="body px-2 w-100"
+            @click="if($event.target.closest('.link:not(.link-list-toggle)')) $store.commit('SET_APPLICATION_MAIN_ASIDE_OPENED', false);"
+          >
             <ul class="list-unstyled mb-0 py-3">
               <li>
                 <router-link
-                  class="link btn btn-sm fs-5 rounded text-light"
-                  tag="li"
+                  class="link btn btn-sm fs-6 mb-1 rounded text-light"
                   :to="{name: 'Dashboard'}"
                 >
                   Dashboard
                 </router-link>
               </li>
               <li>
-                <button
-                  class="link btn btn-sm fs-5 rounded text-light"
-                  :to="{name: 'Dashboard'}"
+                <router-link
+                  class="link btn btn-sm fs-6 mb-1 rounded text-light"
+                  :to="{name: 'Projects'}"
                 >
                   Projects
-                </button>
+                </router-link>
               </li>
             </ul>
           </div>
@@ -70,10 +73,7 @@
         <div class="right d-flex flex-grow-1 flex-shrink-1 justify-content-end">
           <button
             class="btn btn-outline-danger"
-            @click="
-              $store.dispatch('authenticationSignOut');
-              $router.push({name: 'Home'});
-            "
+            @click="signOut()"
             v-if="$store.getters.authenticated"
           >
             <span class="feather feather-log-out"></span>
@@ -87,33 +87,48 @@
       :class="{'state:header-hidden': $store.state.application.mainHeaderHidden}"
       :style="{'--content-viewport': $store.state.application.mainHeaderHidden ? '100vh' : 'calc(100vh - 4rem)'}"
     >
-      <div class="container position-relative">
-        <router-view #default="{Component}">
-          <keep-alive>
-            <transition name="g-transition-router-view">
-              <component :is="Component"></component>
-            </transition>
-          </keep-alive>
-        </router-view>
+      <div class="container position-relative w-100">
+        <div class="wrapper w-100">
+          <router-view #default="{Component}">
+            <keep-alive>
+              <transition name="g-transition-router-view">
+                <component :is="Component"></component>
+              </transition>
+            </keep-alive>
+          </router-view>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script>
-import { PerfectScrollbar } from 'vue3-perfect-scrollbar';
 import { computed } from 'vue';
+import { useRouter } from 'vue-router';
+import { useStore } from 'vuex';
+import { PerfectScrollbar } from 'vue3-perfect-scrollbar';
 import apiConfiguration from '@/configuration/api';
 
 export default {
   components: {PerfectScrollbar},
   name: 'GApplicationMain',
   setup() {
+    const $router = useRouter();
+    const $store = useStore();
+
     const apiUrl = computed(function() {
       return apiConfiguration.url;
     });
 
-    return {apiUrl};
+    async function signOut() {
+      await $store.dispatch('authenticationSignOut');
+      await $router.push({name: 'Home'});
+    }
+
+    return {
+      apiUrl,
+      signOut
+    };
   }
 }
 </script>
@@ -154,6 +169,10 @@ export default {
           }
           &:where(:focus) {
             border: 1px solid rgba(var(--bs-light-rgb), 0.75);
+          }
+
+          &.router-link-active {
+            font-weight: bold;
           }
         }
       }
