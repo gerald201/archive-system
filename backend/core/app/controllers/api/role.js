@@ -1,9 +1,7 @@
 const models = require('../../../../database/models');
-const authenticationGuard = require('../../guards/authentication');
 
 function index() {
   return [
-    authenticationGuard(),
     async function(request, response, next) {
       try {
         const attributesQueryData = request.parseDatabaseQuery('attributes', request.query.attributes);
@@ -22,37 +20,36 @@ function index() {
 
         if(offsetQueryData !== null) databaseQuery.offset = offsetQueryData;
 
-        const semesters = await models.Semester.findAll(databaseQuery);
+        const roles = await models.Role.findAll(databaseQuery);
 
         return response.respond({
           name: 'ResourceRetrievalSuccess',
-          payload: {semesters}
+          payload: {roles}
         });
       } catch(error) {
-        return next({
+        return  next({
           name: 'ServerError',
           error
         });
       }
     }
-  ];
+  ]
 }
 
 function view() {
   return [
-    authenticationGuard(),
     async function(request, response, next) {
       try {
-        const semester = await models.Level.findOne({
+        const role = await models.Role.findOne({
           paranoid: false,
           where: {id: request.params.id}
         });
 
-        if(!semester) return next({name: 'ResourceNotFoundError'});
+        if(!role) return next({name: 'ResourceNotFoundError'});
 
         return response.respond({
           name: 'ResourceRetrievalSuccess',
-          payload: {semester}
+          payload: {role}
         });
       } catch(error) {
         return next({

@@ -30,10 +30,10 @@ function main(options) {
             name: {[models.Sequelize.Op.in]: exclude}
           }
         });
-        const excludeCheck = excludedRoleNames.length ? excludeCount == 0 : true;
-        const icludeCheck = includedRoleNames.length ? includeCount > 0 : true;
+        const excludeCheck = exclude.length ? excludeCount == 0 : true;
+        const includeCheck = include.length ? includeCount > 0 : true;
 
-        if(!(icludeCheck && excludeCheck)) return next({name: 'PermissionSufficiencyError'});
+        if(!(includeCheck && excludeCheck)) return next({name: 'PermissionSufficiencyError'});
 
         return next();
       } catch(error) {

@@ -86,15 +86,15 @@ function index() {
         const { limit: limitQueryData, offset: offsetQueryData } = request.parsePagination(request.query.pagination);
         const databaseQuery = {paranoid: false};
 
-        if(attributesQueryData) databaseQuery.attributes = attributesQueryData;
+        if(attributesQueryData !== null) databaseQuery.attributes = attributesQueryData;
 
-        if(orderQueryData) databaseQuery.order = orderQueryData;
+        if(orderQueryData !== null) databaseQuery.order = orderQueryData;
 
-        if(whereQueryData) databaseQuery.where = whereQueryData;
+        if(whereQueryData !== null) databaseQuery.where = whereQueryData;
 
-        if(limitQueryData) databaseQuery.limit = limitQueryData;
+        if(limitQueryData !== null) databaseQuery.limit = limitQueryData;
 
-        if(offsetQueryData) databaseQuery.offset = offsetQueryData;
+        if(offsetQueryData !== null) databaseQuery.offset = offsetQueryData;
 
         const programs = await models.Program.findAll(databaseQuery);
 

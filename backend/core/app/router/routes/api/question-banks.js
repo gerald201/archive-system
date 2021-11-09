@@ -4,6 +4,10 @@ const controller = require('../../../controllers/api/question-bank');
 const router = express.Router();
 
 router
+  .route('/count')
+  .get(controller.count());
+
+router
   .route('/create')
   .post(controller.create());
   

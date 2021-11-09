@@ -10,8 +10,8 @@ function main() {
             offset: null
           };
 
-          data.page = (data.page && !isNaN(data.page)) || typeof data.page == 'number' ? parseInt(data.page) : 0;
-          data.size = (data.size && !isNaN(data.size)) || typeof data.size == 'number' ? parseInt(data.size) : 0;
+          data.page = !isNaN(parseInt(data.page)) ? parseInt(data.page) : 0;
+          data.size = !isNaN(parseInt(data.size)) ? parseInt(data.size) : 0;
 
           return {
             limit: (data.page > 0 && data.size > 0) ? data.size : null,

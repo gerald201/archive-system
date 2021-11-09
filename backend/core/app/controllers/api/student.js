@@ -1,7 +1,47 @@
 const models = require('../../../../database/models');
 const { createHashAndSalt } = require('../../../../services/crypto');
+const authenticationGuard = require('../../guards/authentication');
 const roleGuard = require('../../guards/role');
 const validationGuard = require('../../guards/validation');
+
+function count() {
+  return [
+    authenticationGuard(),
+    async function(request, response, next) {
+      try {
+        const studentCount = await models.User.count({
+          include: [
+            {
+              model: models.Role,
+              as: 'Roles'
+            },
+            {
+              model: models.UserProfile,
+              as: 'UserProfile',
+              include: {
+                model: models.UserProfileType,
+                as: 'UserProfileType'
+              }
+            }
+          ],
+          paranoid: false,
+          where: {'$UserProfile.UserProfileType.name$': 'student'}
+        });
+
+        return response.respond({
+          name: 'ResourceRetrievalSuccess',
+          payload: {studentCount}
+        });
+      } catch(error) {
+        console.log(error);
+        return next({
+          name: 'ServerError',
+          error
+        });
+      }
+    }
+  ];
+}
 
 function create() {
   return [
@@ -156,7 +196,7 @@ function index() {
         const { limit: limitQueryData, offset: offsetQueryData } = request.parsePagination(request.query.pagination);
         const databaseQuery = {paranoid: false};
 
-        if(attributesQueryData) {
+        if(attributesQueryData !== null) {
           const excluded = [
             'hash',
             'salt'
@@ -180,7 +220,7 @@ function index() {
           };
         }
 
-        if(includeQueryData) databaseQuery.include = includeQueryData;
+        if(includeQueryData !== null) databaseQuery.include = includeQueryData;
         else {
           databaseQuery.include = [
             {
@@ -199,9 +239,9 @@ function index() {
           ];
         }
 
-        if(orderQueryData) databaseQuery.order = orderQueryData;
+        if(orderQueryData !== null) databaseQuery.order = orderQueryData;
 
-        if(whereQueryData) {
+        if(whereQueryData !== null) {
           databaseQuery.where = {
             ...whereQueryData,
             '$UserProfile.UserProfileType.name$': 'student'
@@ -209,9 +249,9 @@ function index() {
         }
         else databaseQuery.where = {'$UserProfile.UserProfileType.name$': 'student'};
 
-        if(limitQueryData) databaseQuery.limit = limitQueryData;
+        if(limitQueryData !== null) databaseQuery.limit = limitQueryData;
 
-        if(offsetQueryData) databaseQuery.offset = offsetQueryData;
+        if(offsetQueryData !== null) databaseQuery.offset = offsetQueryData;
 
         const students = await models.User.findAll(databaseQuery);
 
@@ -472,6 +512,7 @@ function view() {
 }
 
 module.exports = {
+  count,
   create,
   destroy,
   index,

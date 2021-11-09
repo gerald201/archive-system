@@ -24,13 +24,13 @@ function parseInclude(data) {
 
       if(subData.as && typeof subData.as == 'string') result.as = subData.as;
 
-      if(attributesQueryData) result.attributes = attributesQueryData;
+      if(attributesQueryData !== null) result.attributes = attributesQueryData;
 
-      if(includeQueryData) result.include = includeQueryData;
+      if(includeQueryData !== null) result.include = includeQueryData;
       
-      if(orderQueryData) result.order = orderQueryData;
+      if(orderQueryData !== null) result.order = orderQueryData;
 
-      if(whereQueryData) result.where = whereQueryData;
+      if(whereQueryData !== null) result.where = whereQueryData;
 
       return result;
     });
@@ -46,8 +46,8 @@ function parseOrder(data) {
         .filter(function(param) {
           if(param?.constructor?.name?.toLowerCase() == 'object') return true;
 
-          const specialParamCheck = /^\$\$\w+$/.test(param);
-          const specialParam = param.replace('$$', '');
+          const specialParamCheck = /^\$.+$/.test(param);
+          const specialParam = param.replace('$', '');
 
           return !specialParamCheck || specialParam in models;
         })
@@ -62,8 +62,8 @@ function parseOrder(data) {
             return result;
           }
 
-          const specialParamCheck = /^\$\$\w+$/.test(param);
-          const specialParam = param.replace('$$', '');
+          const specialParamCheck = /^\$.+$/.test(param);
+          const specialParam = param.replace('$', '');
 
           if(specialParamCheck)  return models[specialParam];
 
@@ -83,8 +83,8 @@ function parseWhere(data) {
   const result = {};
 
   for(const key in data) {
-    const specialKeyCheck = /^\$\$\w+$/.test(key);
-    const specialKey = specialKeyCheck ? key.replace('$$', '') : key;
+    const specialKeyCheck = /^\$.+$/.test(key);
+    const specialKey = specialKeyCheck ? key.replace('$', '') : key;
     const objectCheck = data[key] && typeof data[key] == 'object' && !Array.isArray(data[key]);
 
     if(specialKeyCheck && specialKey in models.Sequelize.Op) result[models.Sequelize.Op[specialKey]] = objectCheck ? parseWhere(data[key]) : data[key];

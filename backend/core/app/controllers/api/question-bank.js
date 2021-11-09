@@ -5,6 +5,27 @@ const authenticationGuard = require('../../guards/authentication');
 const roleGuard = require('../../guards/role');
 const validationGuard = require('../../guards/validation');
 
+function count() {
+  return [
+    authenticationGuard(),
+    async function(request, response, next) {
+      try {
+        const questionBankCount = await models.QuestionBank.count({paranoid: false});
+
+        return response.respond({
+          name: 'ResourceRetrievalSuccess',
+          payload: {questionBankCount}
+        });
+      } catch(error) {
+        return next({
+          name: 'ServerError',
+          error
+        });
+      }
+    }
+  ];
+}
+
 function create() {
   return [
     roleGuard('super_administrator'),
@@ -133,9 +154,9 @@ function index() {
         const { limit: limitQueryData, offset: offsetQueryData } = request.parsePagination(request.query.pagination);
         const databaseQuery = {paranoid: false};
 
-        if(attributesQueryData) databaseQuery.attributes = attributesQueryData;
+        if(attributesQueryData !== null) databaseQuery.attributes = attributesQueryData;
 
-        if(includeQueryData) databaseQuery.include = includeQueryData;
+        if(includeQueryData !== null) databaseQuery.include = includeQueryData;
         else {
           databaseQuery.include = {
             model: models.Course,
@@ -157,13 +178,13 @@ function index() {
           };
         }
 
-        if(orderQueryData) databaseQuery.order = orderQueryData;
+        if(orderQueryData !== null) databaseQuery.order = orderQueryData;
 
-        if(whereQueryData) databaseQuery.where = whereQueryData;
+        if(whereQueryData !== null) databaseQuery.where = whereQueryData;
 
-        if(limitQueryData) databaseQuery.limit = limitQueryData;
+        if(limitQueryData !== null) databaseQuery.limit = limitQueryData;
 
-        if(offsetQueryData) databaseQuery.offset = offsetQueryData;
+        if(offsetQueryData !== null) databaseQuery.offset = offsetQueryData;
 
         const questionBanks = await models.QuestionBank.findAll(databaseQuery);
         
@@ -401,6 +422,7 @@ function view() {
 }
 
 module.exports = {
+  count,
   create,
   destroy,
   index,
