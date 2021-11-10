@@ -6,13 +6,24 @@
         :class="{'state:opened': $store.state.application.mainAsideOpened}"
         v-if="!$store.state.application.mainAsideHidden"
       >
-        <perfect-scrollbar class="scroll h-100 w-100">
+        <div class="toggler-container px-2">
+          <button
+            class="toggler btn-close btn-close-white"
+            @click="$store.commit('SET_APPLICATION_MAIN_ASIDE_OPENED', false);"
+          ></button>
+        </div>
+        <perfect-scrollbar class="scroll w-100">
           <div class="logo-container align-items-center d-flex justify-content-center p-3">
-            <img
-              alt=""
-              class="logo rounded"
-              :src="`${apiUrl}/assets/images/gctu-logo.jpg`"
+            <router-link
+              class="h-100"
+              :to="{name: 'Home'}"
             >
+              <img
+                alt=""
+                class="logo h-100 rounded"
+                :src="`${apiUrl}/assets/images/gctu-logo.jpg`"
+              >
+            </router-link>
           </div>
           <div
             aria-label="Docs navigation"
@@ -36,6 +47,24 @@
                   Projects
                 </router-link>
               </li>
+              <li>
+                <router-link
+                  class="link btn btn-sm fs-6 mb-1 rounded text-light"
+                  :to="{name: 'QuestionBanks'}"
+                >
+                  Question Banks
+                </router-link>
+              </li>
+              <template v-if="$store.state.storage.authenticationUser?.UserProfile?.UserProfileType?.name == 'staff'">
+                <li>
+                  <router-link
+                    class="link btn btn-sm fs-6 mb-1 rounded text-light"
+                    :to="{name: 'Students'}"
+                  >
+                    Students
+                  </router-link>
+                </li>
+              </template>
             </ul>
           </div>
         </perfect-scrollbar>
@@ -56,7 +85,7 @@
         v-if="!$store.state.application.mainHeaderHidden"
       >
         <button
-          class="btn btn-primary border-0 flex-grow-0 flex-shrink-0 rounded"
+          class="btn btn-sm btn-primary border-0 flex-grow-0 flex-shrink-0 rounded"
           @click="$store.commit('SET_APPLICATION_MAIN_ASIDE_OPENED', !$store.state.application.mainAsideOpened);"
           v-if="!$store.state.application.mainAsideHidden"
         >
@@ -87,8 +116,8 @@
       :class="{'state:header-hidden': $store.state.application.mainHeaderHidden}"
       :style="{'--content-viewport': $store.state.application.mainHeaderHidden ? '100vh' : 'calc(100vh - 4rem)'}"
     >
-      <div class="container position-relative w-100">
-        <div class="wrapper w-100">
+      <div class="container w-100">
+        <div class="wrapper position-relative w-100">
           <router-view #default="{Component}">
             <keep-alive>
               <transition name="g-transition-router-view">
@@ -137,6 +166,18 @@ export default {
 .g-application-main {
   z-index: 1;
 
+  & > .modal-overlay {
+    height: 100vh;
+    left: 0px;
+    pointer-events: none;
+    position: fixed;
+    top: 0px;
+
+    & > * {
+      pointer-events: auto;
+    }
+  }
+
   & > .aside {
     --self__left: -16rem;
 
@@ -151,7 +192,16 @@ export default {
     width: 16rem;
     z-index: 4;
 
+    & > .toggler-container {
+      align-items: center;
+      display: flex;
+      height: 3rem;
+      justify-content: flex-end;
+    }
+
     & > .scroll {
+      height: calc(100% - 3rem);
+
       & > .logo-container {
         height: 12rem;
         width: 100%;
@@ -163,6 +213,7 @@ export default {
 
       & > .body {
         transition-property: background-color, border;
+
         .link {
           &:where(:hover) {
             background-color: rgba(var(--bs-light-rgb), 0.25);

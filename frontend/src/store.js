@@ -80,8 +80,8 @@ export default createStore({
 
             return check ? accumulator + 1 : accumulator;
           }, 0);
-        const includeCheck = included.length ? includeCount > 0 : true;
-        const excludeCheck = excluded.length ? excludeCount == 0 : true;
+        const includeCheck = include.length ? includeCount > 0 : true;
+        const excludeCheck = exclude.length ? excludeCount == 0 : true;
 
         return includeCheck || excludeCheck;
       }
@@ -107,6 +107,8 @@ export default createStore({
       if(typeof payload != 'boolean') return;
 
       state.application.mainAsideHidden = payload;
+      
+      if(!payload) state.application.mainAsideOpened = false;
     },
     SET_APPLICATION_MAIN_ASIDE_OPENED(state, payload) {
       if(typeof payload != 'boolean') return;
@@ -206,7 +208,7 @@ export default createStore({
       try {
         if(!context.getters.authenticationAccessTokenAvailable) return false;
 
-        await axios.get('/api/authentication/sign-out');
+        const response = await axios.get('/api/authentication/sign-out');
         context.commit('SET_STORAGE_AUTHENTICATION_TOKEN', null);
         context.commit('SET_STORAGE_AUTHENTICATION_USER', null);
         context.commit('SET_STORAGE_PROJECT_COUNT', null);
@@ -340,7 +342,7 @@ export default createStore({
             }
           });
 
-          context.commit('SET_STORAGE_PROJECTS', (context.state.storage.questionBanks || []).concat(response.data.payload.questionBanks));
+          context.commit('SET_STORAGE_QUESTION_BANKS', (context.state.storage.questionBanks || []).concat(response.data.payload.questionBanks));
           return true;
         }
 
@@ -397,7 +399,7 @@ export default createStore({
 
         if(!context.getters.authenticationUserHasRoles('super_administrator')) return false;
 
-        if(context.state.storage.studentCount !== null && context.state.storage.students !== null && context.state.storage.studentCount == (context.state.storage.students?.length || 0)) return true;
+        if(context.state.storage.studentCount !== null && context.state.storage.students !== null && context.state.storage.studentCount == context.state.storage.students.length) return true;
 
         context.dispatch('requestStudentCountFromApi');
 

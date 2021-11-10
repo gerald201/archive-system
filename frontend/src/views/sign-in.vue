@@ -92,6 +92,12 @@
               ></span>
               Sign In!
             </button>
+            <router-link
+              class="pt-2 text-center w-100"
+              :to="{name: 'Home'}"
+            >
+              Home
+            </router-link>
           </div>
         </form>
       </div>

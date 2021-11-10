@@ -1,11 +1,14 @@
 import axios from 'axios';
 import { decrypt } from '@/services/cypher';
+import { createSocketClient } from '@/services/socket';
 import axiosInterceptor from './axios-interceptor';
 import polyfill from './polyfill';
 import routerGuard from './router-guard';
 import vuexObserver from './vuex-observer';
 
 async function main(router, store) {
+  window.NAMESPACE_G = {socketClient: await createSocketClient()};
+
   axiosInterceptor(store);
   polyfill();
   routerGuard(router, store);
@@ -25,7 +28,7 @@ async function main(router, store) {
 
   addEventListener('load', async function() {
     try {
-      axios.get('/ping');
+      axios.get('/ping/guest');
     } finally {
       store.commit('SET_APPLICATION_INITIALIZED', true);
       

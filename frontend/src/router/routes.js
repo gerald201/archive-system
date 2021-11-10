@@ -14,13 +14,29 @@ export default [
   {
     name: 'Home',
     path: '/',
-    component: HomeView
+    component: HomeView,
+    meta: {
+      checks: {disableMainAside: true}
+    }
   },
   {
     name: 'Projects',
     path: '/projects',
     component() {
       return import('@/views/projects');
+    },
+    meta: {
+      guards: {requireAuth: true}
+    }
+  },
+  {
+    name: 'QuestionBanks',
+    path: '/question-banks',
+    component() {
+      return import('@/views/question-banks');
+    },
+    meta: {
+      guards: {requireAuth: true}
     }
   },
   {
@@ -36,5 +52,15 @@ export default [
         disableMainHeader: true
       }
     }
-  }
+  },
+  {
+    name: 'Students',
+    path: '/students',
+    component() {
+      return import('@/views/students');
+    },
+    meta: {
+      guards: {requireStaffUserProfileType: true}
+    }
+  },
 ];

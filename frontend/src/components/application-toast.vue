@@ -115,7 +115,7 @@ export default {
 .g-application-toast {
   pointer-events: none;
   height: 100vh;
-  z-index: 4;
+  z-index: 2000;
 
   & > :deep(.toast-container > .toast) {
     pointer-events: auto;

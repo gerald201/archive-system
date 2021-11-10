@@ -1,7 +1,7 @@
 <template>
   <div class="g-dashboard-view py-5 w-100">
     <template v-if="$store.state.storage.authenticationUser?.UserProfile?.UserProfileType?.name == 'staff'">
-      <div class="row">
+      <div class="row m-0 w-100">
         <div class="col">
           <div class="card">
             <div class="card-header">
@@ -17,9 +17,12 @@
                 v-else
                 v-text="$store.state.storage.projectCount"
               ></p>
-              <button class="btn btn-primary w-100">
+              <router-link
+                class="btn btn-primary w-100"
+                :to="{name: 'Projects'}"
+              >
                 View All
-              </button>
+              </router-link>
             </div>
           </div>
         </div>
@@ -38,9 +41,12 @@
                 v-else
                 v-text="$store.state.storage.questionBankCount"
               ></p>
-              <button class="btn btn-primary w-100">
+              <router-link
+                class="btn btn-primary w-100"
+                :to="{name: 'QuestionBanks'}"
+              >
                 View All
-              </button>
+              </router-link>
             </div>
           </div>
         </div>
@@ -59,9 +65,12 @@
                 v-else
                 v-text="$store.state.storage.studentCount"
               ></p>
-              <button class="btn btn-primary w-100">
+              <router-link
+                class="btn btn-primary w-100"
+                :to="{name: 'Students'}"
+              >
                 View All
-              </button>
+              </router-link>
             </div>
           </div>
         </div>
@@ -155,7 +164,6 @@
 </template>
 
 <script>
-import { watchEffect } from 'vue';
 import { useStore } from 'vuex';
 
 export default {
@@ -163,23 +171,19 @@ export default {
   setup() {
     const $store = useStore();
 
-    if($store.state.storage.projectCount === null) $store.dispatch('requestProjectCountFromApi');
+    if($store.state.storage.authenticationUser?.UserProfile?.UserProfileType?.name == 'staff') {
+      if($store.state.storage.projectCount === null) $store.dispatch('requestProjectCountFromApi');
 
-    if($store.state.storage.projects === null) $store.dispatch('requestProjectsFromApi');
+      if($store.state.storage.questionBankCount === null) $store.dispatch('requestQuestionBankCountFromApi');
 
-    if($store.state.storage.questionBankCount === null) $store.dispatch('requestQuestionBankCountFromApi');
+      if($store.state.storage.studentCount === null) $store.dispatch('requestStudentCountFromApi');
+    }
 
-    if($store.state.storage.questionBanks === null) $store.dispatch('requestQuestionBanksFromApi');
+    if($store.state.storage.authenticationUser?.UserProfile?.UserProfileType?.name == 'student') {
+      if($store.state.storage.projects === null) $store.dispatch('requestProjectsFromApi');
 
-    if($store.state.storage.studentCount === null) $store.dispatch('requestStudentCountFromApi');
-
-    if($store.state.storage.students === null) $store.dispatch('requestStudentsFromApi');
+      if($store.state.storage.questionBanks === null) $store.dispatch('requestQuestionBanksFromApi');
+    }
   }
 }
 </script>
-
-<style lang="scss" scoped>
-.g-dashboard-view {
-
-}
-</style>
