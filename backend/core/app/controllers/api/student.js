@@ -119,7 +119,7 @@ function create() {
 
         delete preppedStudent.hash;
         delete preppedStudent.salt;
-
+        request.app.locals.socketCore.emit('api:students:created', preppedStudent);
         return response.respond({
           name: 'ResourceCreationSuccess',
           payload: {student: preppedStudent}
@@ -190,11 +190,13 @@ function index() {
     async function(request, response, next) {
       try {
         const attributesQueryData = request.parseDatabaseQuery('attributes', request.query.attributes);
-        const includeQueryData = request.parseDatabaseQuery('include', request.query.include);
         const orderQueryData = request.parseDatabaseQuery('order', request.query.order);
         const whereQueryData = request.parseDatabaseQuery('where', request.query.where);
         const { limit: limitQueryData, offset: offsetQueryData } = request.parsePagination(request.query.pagination);
-        const databaseQuery = {paranoid: false};
+        const databaseQuery = {
+          paranoid: false,
+          subQuery: false
+        };
 
         if(attributesQueryData !== null) {
           const excluded = [
@@ -220,25 +222,6 @@ function index() {
           };
         }
 
-        if(includeQueryData !== null) databaseQuery.include = includeQueryData;
-        else {
-          databaseQuery.include = [
-            {
-              model: models.Role,
-              as: 'Roles'
-            },
-            {
-              model: models.UserProfile,
-              as: 'UserProfile',
-              include: {
-                model: models.UserProfileType,
-                as: 'UserProfileType',
-                paranoid: false
-              }
-            }
-          ];
-        }
-
         if(orderQueryData !== null) databaseQuery.order = orderQueryData;
 
         if(whereQueryData !== null) {
@@ -252,6 +235,21 @@ function index() {
         if(limitQueryData !== null) databaseQuery.limit = limitQueryData;
 
         if(offsetQueryData !== null) databaseQuery.offset = offsetQueryData;
+
+        databaseQuery.include = [
+          {
+            model: models.Role,
+            as: 'Roles'
+          },
+          {
+            model: models.UserProfile,
+            as: 'UserProfile',
+            include: {
+              model: models.UserProfileType,
+              as: 'UserProfileType'
+            }
+          }
+        ];
 
         const students = await models.User.findAll(databaseQuery);
 

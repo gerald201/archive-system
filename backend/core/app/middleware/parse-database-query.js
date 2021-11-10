@@ -8,34 +8,6 @@ function parseAttributes(data) {
   return (data.include.length || data.exclude.length) ? data : null;
 }
 
-function parseInclude(data) {
-  return (Array.isArray(data) ? data : [data])
-    .filter(function(subData) {
-      return subData?.constructor?.name?.toLowerCase() == 'object' && subData.model in models || typeof subData == 'string' && subData in models;
-    })
-    .map(function(subData) {
-      const attributesQueryData = parseAttributes(subData.attributes);
-      const includeQueryData = parseInclude(subData.include);
-      const orderQueryData = parseOrder(subData.order);
-      const whereQueryData = parseWhere(subData.where);
-      const result = {};
-
-      result.model = typeof subData == 'string' ? models[subData] : models[subData.model];
-
-      if(subData.as && typeof subData.as == 'string') result.as = subData.as;
-
-      if(attributesQueryData !== null) result.attributes = attributesQueryData;
-
-      if(includeQueryData !== null) result.include = includeQueryData;
-      
-      if(orderQueryData !== null) result.order = orderQueryData;
-
-      if(whereQueryData !== null) result.where = whereQueryData;
-
-      return result;
-    });
-}
-
 function parseOrder(data) {
   const result = (Array.isArray(data) ? data : [data])
     .map(function(subData) {
@@ -102,8 +74,6 @@ function main() {
           const data = JSON.parse(jsonString);
 
           if(type == 'attributes') return parseAttributes(data);
-
-          if(type == 'include') return parseInclude(data);
           
           if(type == 'order') return parseOrder(data);
           

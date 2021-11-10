@@ -1,4 +1,15 @@
-function index() {
+const authenticationGuard = require('../guards/authentication');
+
+function authentication() {
+  return [
+    authenticationGuard(),
+    function(request, response) {
+      return response.respond();
+    }
+  ];
+}
+
+function guest() {
   return [
     function(request, response) {
       return response.respond();
@@ -7,5 +18,6 @@ function index() {
 }
 
 module.exports = {
-  index
+  authentication,
+  guest
 };

@@ -148,35 +148,15 @@ function index() {
     async function(request, response, next) {
       try {
         const attributesQueryData = request.parseDatabaseQuery('attributes', request.query.attributes);
-        const includeQueryData = request.parseDatabaseQuery('include', request.query.include);
         const orderQueryData = request.parseDatabaseQuery('order', request.query.order);
         const whereQueryData = request.parseDatabaseQuery('where', request.query.where);
         const { limit: limitQueryData, offset: offsetQueryData } = request.parsePagination(request.query.pagination);
-        const databaseQuery = {paranoid: false};
+        const databaseQuery = {
+          paranoid: false,
+          subQuery: false
+        };
 
         if(attributesQueryData !== null) databaseQuery.attributes = attributesQueryData;
-
-        if(includeQueryData !== null) databaseQuery.include = includeQueryData;
-        else {
-          databaseQuery.include = {
-            model: models.Course,
-            as: 'Course',
-            include: [
-              {
-                model: models.Level,
-                as: 'Level'
-              },
-              {
-                model: models.Program,
-                as: 'Program'
-              },
-              {
-                model: models.Semester,
-                as: 'Semester'
-              }
-            ]
-          };
-        }
 
         if(orderQueryData !== null) databaseQuery.order = orderQueryData;
 
@@ -185,6 +165,25 @@ function index() {
         if(limitQueryData !== null) databaseQuery.limit = limitQueryData;
 
         if(offsetQueryData !== null) databaseQuery.offset = offsetQueryData;
+
+        databaseQuery.include = {
+          model: models.Course,
+          as: 'Course',
+          include: [
+            {
+              model: models.Level,
+              as: 'Level'
+            },
+            {
+              model: models.Program,
+              as: 'Program'
+            },
+            {
+              model: models.Semester,
+              as: 'Semester'
+            }
+          ]
+        };
 
         const questionBanks = await models.QuestionBank.findAll(databaseQuery);
         

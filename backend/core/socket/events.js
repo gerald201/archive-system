@@ -1,5 +1,7 @@
 function main(socket) {
-  // Register all socket events here...
+  socket.on('connection', function(client) {
+    
+  });
 }
 
 module.exports = main;

@@ -10,7 +10,10 @@ function index() {
         const orderQueryData = request.parseDatabaseQuery('order', request.query.order);
         const whereQueryData = request.parseDatabaseQuery('where', request.query.where);
         const { limit: limitQueryData, offset: offsetQueryData } = request.parsePagination(request.query.pagination);
-        const databaseQuery = {paranoid: false};
+        const databaseQuery = {
+          paranoid: false,
+          subQuery: false
+        };
 
         if(attributesQueryData !== null) databaseQuery.attributes = attributesQueryData;
 
