@@ -8,7 +8,7 @@ export default [
       return import('@/views/dashboard');
     },
     meta: {
-      guards: {requireAuth: true}
+      guards: {requireAuthentication: true}
     }
   },
   {
@@ -26,7 +26,7 @@ export default [
       return import('@/views/projects');
     },
     meta: {
-      guards: {requireAuth: true}
+      guards: {requireAuthentication: true}
     }
   },
   {
@@ -36,7 +36,7 @@ export default [
       return import('@/views/question-banks');
     },
     meta: {
-      guards: {requireAuth: true}
+      guards: {requireAuthentication: true}
     }
   },
   {

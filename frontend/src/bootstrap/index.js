@@ -1,28 +1,30 @@
 import axios from 'axios';
-import { decrypt } from '@/services/cypher';
-import { createSocketClient } from '@/services/socket';
+import crypto from 'crypto';
+import { getCache, setCache } from '@/services/cache';
 import axiosInterceptor from './axios-interceptor';
+import globalNamespace from './global-namespace';
 import polyfill from './polyfill';
 import routerGuard from './router-guard';
+import socketClientEvents from './socket-client-events';
 import vuexObserver from './vuex-observer';
 
 async function main(router, store) {
-  window.NAMESPACE_G = {socketClient: await createSocketClient()};
-
-  axiosInterceptor(store);
-  polyfill();
-  routerGuard(router, store);
-  vuexObserver(store);
-
-  let cache;
-
-  try {
-    cache = JSON.parse(decrypt(localStorage.getItem('cache')));
-  } catch(error) {
-    cache = {};
+  const cache = getCache();
+  
+  if(!cache.cacheKey)  {
+    cache.cacheKey = `${Date.now()}-${crypto.randomBytes(16).toString('hex')}`;
+    setCache(cache);
   }
 
   if(cache.authenticationToken) store.commit('SET_STORAGE_AUTHENTICATION_TOKEN', cache.authenticationToken);
+
+  globalNamespace();
+  polyfill();
+
+  axiosInterceptor(store);
+  routerGuard(router, store);
+  socketClientEvents(router, store);
+  vuexObserver(store);
 
   store.commit('SET_APPLICATION_LOADING', true);
 

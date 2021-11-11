@@ -172,17 +172,17 @@ export default {
     const $store = useStore();
 
     if($store.state.storage.authenticationUser?.UserProfile?.UserProfileType?.name == 'staff') {
-      if($store.state.storage.projectCount === null) $store.dispatch('requestProjectCountFromApi');
+      if($store.state.storage.projectCount === null) $store.dispatch('requestProjectCount');
 
-      if($store.state.storage.questionBankCount === null) $store.dispatch('requestQuestionBankCountFromApi');
+      if($store.state.storage.questionBankCount === null) $store.dispatch('requestQuestionBankCount');
 
-      if($store.state.storage.studentCount === null) $store.dispatch('requestStudentCountFromApi');
+      if($store.state.storage.studentCount === null) $store.dispatch('requestStudentCount');
     }
 
     if($store.state.storage.authenticationUser?.UserProfile?.UserProfileType?.name == 'student') {
-      if($store.state.storage.projects === null) $store.dispatch('requestProjectsFromApi');
+      if($store.state.storage.projects === null) $store.dispatch('requestProjects');
 
-      if($store.state.storage.questionBanks === null) $store.dispatch('requestQuestionBanksFromApi');
+      if($store.state.storage.questionBanks === null) $store.dispatch('requestQuestionBanks');
     }
   }
 }

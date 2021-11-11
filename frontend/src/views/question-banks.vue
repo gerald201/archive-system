@@ -36,7 +36,7 @@ export default {
   setup() {
     const $store = useStore();
 
-    if($store.state.storage.questionBanks === null) $store.dispatch('requestQuestionBanksFromApi');
+    if($store.state.storage.questionBanks === null) $store.dispatch('requestQuestionBanks');
   }
 }
 </script>

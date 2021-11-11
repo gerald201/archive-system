@@ -198,7 +198,7 @@ export default createStore({
           title: response.data.title,
           message: response.data.message
         });
-        await context.dispatch('requestRolesFromApi');
+        await context.dispatch('requestRoles');
         return true;
       } catch(error) {
         return false;
@@ -210,13 +210,6 @@ export default createStore({
 
         const response = await axios.get('/api/authentication/sign-out');
         context.commit('SET_STORAGE_AUTHENTICATION_TOKEN', null);
-        context.commit('SET_STORAGE_AUTHENTICATION_USER', null);
-        context.commit('SET_STORAGE_PROJECT_COUNT', null);
-        context.commit('SET_STORAGE_PROJECTS', null);
-        context.commit('SET_STORAGE_QUESTION_BANK_COUNT', null);
-        context.commit('SET_STORAGE_QUESTION_BANKS', null);
-        context.commit('SET_STORAGE_STUDENT_COUNT', null);
-        context.commit('SET_STORAGE_STUDENTS', null);
         emitter.emit('application:toast', {
           title: response.data.title,
           message: response.data.message
@@ -233,25 +226,109 @@ export default createStore({
         const response = await axios.get('/api/authentication/whoami');
 
         context.commit('SET_STORAGE_AUTHENTICATION_USER', response.data.payload.user);
-        await context.dispatch('requestRolesFromApi');
+        await context.dispatch('requestRoles');
         return true;
       } catch(error) {
         return false;
       }
     },
-    async requestProjectCountFromApi(context) {
+    async createStudent(context, payload) {
+      try {
+        if(!context.getters.authenticationAccessTokenAvailable) return false;
+
+        if(!context.getters.authenticationUserHasRoles('super_administrator')) return false;
+
+        const response = await axios.post('/api/students/create', payload);
+
+        context.dispatch('requestStudentCount');
+        context.commit('SET_STORAGE_STUDENTS', (context.state.storage.students || []).concat([response.data.payload.student]));
+        $G.socketClient.emit('api:students:created', response.data.payload.student);
+        emitter.emit('application:toast', {
+          title: response.data.title,
+          message: response.data.message
+        });
+        return true;
+      } catch(error) {
+        return false;
+      }
+    },
+    async destroyStudent(context, payload) {
+      try {
+        const id = isNaN(parseInt(payload)) ? null : parseInt(payload);
+
+        if(id === null) return false;
+
+        if(!context.getters.authenticationAccessTokenAvailable) return false;
+
+        if(!context.getters.authenticationUserHasRoles('super_administrator')) return false;
+
+        const response = await axios.delete(`/api/students/destroy/${id}`);
+        const check = (context.state.storage.students || [])
+          .some(function(existingStudent) {
+            return existingStudent.id == response.data.payload.student.id
+          });
+
+        if(check) {
+          context.commit('SET_STORAGE_STUDENTS', (context.state.storage.students || [])
+            .map(function(existingStudent) {
+              if(existingStudent.id == response.data.payload.student.id) return response.data.payload.student;
+
+              return existingStudent;
+            }));
+        }
+        else context.commit('SET_STORAGE_STUDENTS', (context.state.storage.students || []).concat([response.data.payload.student]));
+        
+        $G.socketClient.emit('api:students:destroyed', response.data.payload.student);
+        emitter.emit('application:toast', {
+          title: response.data.title,
+          message: response.data.message
+        });
+        return true;
+      } catch(error) {
+        return false;
+      }
+    },
+    async obliterateStudent(context, payload) {
+      try {
+        const id = isNaN(parseInt(payload)) ? null : parseInt(payload);
+
+        if(id === null) return false;
+
+        if(!context.getters.authenticationAccessTokenAvailable) return false;
+
+        if(!context.getters.authenticationUserHasRoles('super_administrator')) return false;
+
+        const response = await axios.delete(`/api/students/obliterate/${id}`);
+
+        context.dispatch('requestStudentCount');
+        context.commit('SET_STORAGE_STUDENTS', (context.state.storage.students || [])
+          .filter(function(existingStudent) {
+            return existingStudent.id != response.data.payload.student.id;
+          }));
+        $G.socketClient.emit('api:students:obliterated', response.data.payload.student);
+        emitter.emit('application:toast', {
+          title: response.data.title,
+          message: response.data.message
+        });
+        return true;
+      } catch(error) {
+        return false;
+      }
+    },
+    async requestProjectCount(context) {
       try {
         if(!context.getters.authenticationAccessTokenAvailable) return false;
 
         const response = await axios.get('/api/projects/count');
 
         context.commit('SET_STORAGE_PROJECT_COUNT', response.data.payload.projectCount);
+        $G.socketClient.emit('api:projects:counted', response.data.payload.projectCount);
         return true;
       } catch(error) {
         return false;
       }
     },
-    async requestProjectsFromApi(context) {
+    async requestProjects(context) {
       try {
         if(!context.getters.authenticationAccessTokenAvailable) return false;
 
@@ -266,7 +343,7 @@ export default createStore({
               },
               where: {
                 id: {
-                  $notIn: (Array.isArray(context.state.storage.projects) || [])
+                  $notIn: (context.state.storage.projects || [])
                     .map(function(project) {
                       return project.id
                     })
@@ -280,7 +357,7 @@ export default createStore({
           return true;
         }
 
-        context.dispatch('requestProjectCountFromApi');
+        context.dispatch('requestProjectCount');
         
         const response = await axios.get('/api/projects', {
           params: {
@@ -290,7 +367,7 @@ export default createStore({
             },
             where: {
               id: {
-                $notIn: (Array.isArray(context.state.storage.projects) || [])
+                $notIn: (context.state.storage.projects || [])
                   .map(function(project) {
                     return project.id
                   })
@@ -305,19 +382,20 @@ export default createStore({
         return false;
       }
     },
-    async requestQuestionBankCountFromApi(context) {
+    async requestQuestionBankCount(context) {
       try {
         if(!context.getters.authenticationAccessTokenAvailable) return false;
 
         const response = await axios.get('/api/question-banks/count');
 
         context.commit('SET_STORAGE_QUESTION_BANK_COUNT', response.data.payload.questionBankCount);
+        $G.socketClient.emit('api:question-banks:counted', response.data.payload.questionBankCount);
         return true;
       } catch(error) {
         return false;
       }
     },
-    async requestQuestionBanksFromApi(context) {
+    async requestQuestionBanks(context) {
       try {
         if(!context.getters.authenticationAccessTokenAvailable) return false;
 
@@ -332,7 +410,7 @@ export default createStore({
               },
               where: {
                 id: {
-                  $notIn: (Array.isArray(context.state.storage.questionBanks) || [])
+                  $notIn: (context.state.storage.questionBanks || [])
                     .map(function(questionBank) {
                       return questionBank.id
                     })
@@ -346,7 +424,7 @@ export default createStore({
           return true;
         }
 
-        context.dispatch('requestQuestionBankCountFromApi');
+        context.dispatch('requestQuestionBankCount');
 
         const response = await axios.get('/api/question-banks', {
           params: {
@@ -356,7 +434,7 @@ export default createStore({
             },
             where: {
               id: {
-                $notIn: (Array.isArray(context.state.storage.questionBanks) || [])
+                $notIn: (context.state.storage.questionBanks || [])
                   .map(function(questionBank) {
                     return questionBank.id
                   })
@@ -371,7 +449,7 @@ export default createStore({
         return false;
       }
     },
-    async requestRolesFromApi(context) {
+    async requestRoles(context) {
       try {
         const response = await axios.get('/api/roles');
 
@@ -381,19 +459,20 @@ export default createStore({
         return false;
       }
     },
-    async requestStudentCountFromApi(context) {
+    async requestStudentCount(context) {
       try {
         if(!context.getters.authenticationAccessTokenAvailable) return false;
 
         const response = await axios.get('/api/students/count');
 
         context.commit('SET_STORAGE_STUDENT_COUNT', response.data.payload.studentCount);
+        $G.socketClient.emit('api:students:counted', response.data.payload.studentCount);
         return true;
       } catch(error) {
         return false;
       }
     },
-    async requestStudentsFromApi(context) {
+    async requestStudents(context) {
       try {
         if(!context.getters.authenticationAccessTokenAvailable) return false;
 
@@ -401,7 +480,7 @@ export default createStore({
 
         if(context.state.storage.studentCount !== null && context.state.storage.students !== null && context.state.storage.studentCount == context.state.storage.students.length) return true;
 
-        context.dispatch('requestStudentCountFromApi');
+        context.dispatch('requestStudentCount');
 
         const response = await axios.get('/api/students', {
           params: {
@@ -411,7 +490,7 @@ export default createStore({
             },
             where: {
               id: {
-                $notIn: (Array.isArray(context.state.storage.students) || [])
+                $notIn: (context.state.storage.students || [])
                   .map(function(student) {
                     return student.id
                   })
@@ -425,7 +504,80 @@ export default createStore({
       } catch(error) {
         return false;
       }
-    }
+    },
+    async restoreStudent(context, payload) {
+      try {
+        const id = isNaN(parseInt(payload)) ? null : parseInt(payload);
+
+        if(id === null) return false;
+
+        if(!context.getters.authenticationAccessTokenAvailable) return false;
+
+        if(!context.getters.authenticationUserHasRoles('super_administrator')) return false;
+
+        const response = await axios.post(`/api/students/restore/${id}`);
+        const check = (context.state.storage.students || [])
+          .some(function(existingStudent) {
+            return existingStudent.id == response.data.payload.student.id
+          });
+
+        if(check) {
+          context.commit('SET_STORAGE_STUDENTS', (context.state.storage.students || [])
+            .map(function(existingStudent) {
+              if(existingStudent.id == response.data.payload.student.id) return response.data.payload.student;
+
+              return existingStudent;
+            }));
+        }
+        else context.commit('SET_STORAGE_STUDENTS', (context.state.storage.students || []).concat([response.data.payload.student]));
+        
+        $G.socketClient.emit('api:students:restored', response.data.payload.student);
+        emitter.emit('application:toast', {
+          title: response.data.title,
+          message: response.data.message
+        });
+        return true;
+      } catch(error) {
+        return false;
+      }
+    },
+    async updateStudent(context, payload) {
+      try {
+        const id = isNaN(parseInt(payload?.id)) ? null : parseInt(payload.id);
+        const data = payload?.data || null;
+
+        if(id === null || data === null) return false;
+
+        if(!context.getters.authenticationAccessTokenAvailable) return false;
+
+        if(!context.getters.authenticationUserHasRoles('super_administrator')) return false;
+
+        const response = await axios.patch(`/api/students/update/${id}`, data);
+        const check = (context.state.storage.students || [])
+          .some(function(existingStudent) {
+            return existingStudent.id == response.data.payload.student.id
+          });
+
+        if(check) {
+          context.commit('SET_STORAGE_STUDENTS', (context.state.storage.students || [])
+            .map(function(existingStudent) {
+              if(existingStudent.id == response.data.payload.student.id) return response.data.payload.student;
+
+              return existingStudent;
+            }));
+        }
+        else context.commit('SET_STORAGE_STUDENTS', (context.state.storage.students || []).concat([response.data.payload.student]));
+
+        $G.socketClient.emit('api:students:updated', response.data.payload.student);
+        emitter.emit('application:toast', {
+          title: response.data.title,
+          message: response.data.message
+        });
+        return true;
+      } catch(error) {
+        return false;
+      }
+    },
   },
   modules: {},
   strict: true

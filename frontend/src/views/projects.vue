@@ -36,7 +36,7 @@ export default {
   setup() {
     const $store = useStore();
 
-    if($store.state.storage.projects === null) $store.dispatch('requestProjectsFromApi');
+    if($store.state.storage.projects === null) $store.dispatch('requestProjects');
   }
 }
 </script>
