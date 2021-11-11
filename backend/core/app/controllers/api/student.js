@@ -433,7 +433,7 @@ function update() {
         delete userProfileData.index;
 
         if('index' in request.body) {
-          const existingUser = await models.Course.findOne({
+          const existingUser = await models.User.findOne({
             paranoid: false,
             where: {index: request.body.index}
           });
