@@ -1,6 +1,35 @@
 const models = require('../../../../database/models');
 const authenticationGuard = require('../../guards/authentication');
 
+function count() {
+  return [
+    authenticationGuard(),
+    async function(request, response, next) {
+      try {
+        const whereQueryData = request.parseDatabaseQuery('where', request.query.where);
+        const databaseQuery = {
+          paranoid: false,
+          subQuery: false
+        };
+        
+        if(whereQueryData !== null) databaseQuery.where = whereQueryData;
+
+        const count = await models.UserProfileType.count(databaseQuery);
+
+        return response.respond({
+          name: 'ResourceRetrievalSuccess',
+          payload: {count}
+        });
+      } catch(error) {
+        return next({
+          name: 'ServerError',
+          error
+        });
+      }
+    }
+  ];
+}
+
 function index() {
   return [
     authenticationGuard(),
@@ -46,10 +75,17 @@ function view() {
     authenticationGuard(),
     async function(request, response, next) {
       try {
-        const userProfileType = await models.UserProfileType.findOne({
+        const attributesQueryData = request.parseDatabaseQuery('attributes', request.query.attributes);
+        const databaseQuery = {
           paranoid: false,
-          where: {id: request.params.id}
-        });
+          subQuery: false
+        };
+
+        if(attributesQueryData !== null) databaseQuery.attributes = attributesQueryData;
+
+        databaseQuery.where = {id: request.params.id};
+
+        const userProfileType = await models.UserProfileType.findOne(databaseQuery);
 
         if(!userProfileType) return next({name: 'ResourceNotFoundError'});
 
@@ -68,6 +104,7 @@ function view() {
 }
 
 module.exports = {
+  count,
   index,
   view
 };

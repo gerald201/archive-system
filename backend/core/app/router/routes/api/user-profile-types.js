@@ -4,6 +4,10 @@ const controller = require('../../../controllers/api/user-profile-type');
 const router = express.Router();
 
 router
+  .route('/count')
+  .get(controller.count());
+
+router
   .route('/')
   .get(controller.index());
 

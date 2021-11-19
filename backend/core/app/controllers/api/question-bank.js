@@ -10,11 +10,22 @@ function count() {
     authenticationGuard(),
     async function(request, response, next) {
       try {
-        const questionBankCount = await models.QuestionBank.count({paranoid: false});
+        const includeQueryData = request.parseDatabaseQuery('include', request.query.include);
+        const whereQueryData = request.parseDatabaseQuery('where', request.query.where);
+        const databaseQuery = {
+          paranoid: false,
+          subQuery: false
+        };
+
+        if(includeQueryData !== null) databaseQuery.include = includeQueryData;
+        
+        if(whereQueryData !== null) databaseQuery.where = whereQueryData;
+
+        const count = await models.QuestionBank.count(databaseQuery);
 
         return response.respond({
           name: 'ResourceRetrievalSuccess',
-          payload: {questionBankCount}
+          payload: {count}
         });
       } catch(error) {
         return next({
@@ -33,15 +44,11 @@ function create() {
       body: {
         schema: {
           $$strict: 'remove',
-          courseId: {
-            type: 'number',
-            integer: true,
-            positive: true
-          }
+          courseId: 'number|integer|positive|convert'
         }
       },
       file: {
-        handle: 'single',
+        handler: 'single',
         destination: 'question-banks',
         schema: {
           file: {extensions: 'pdf'}
@@ -61,28 +68,19 @@ function create() {
 
         request.body.file = path.relative(uploadsPath, request.file.path);
 
-        const questionBank = await models.QuestionBank.create(request.body, {
-          include: {
-            model: models.Course,
-            as: 'Course',
-            include: [
-              {
-                model: models.Level,
-                as: 'Level'
-              },
-              {
-                model: models.Program,
-                as: 'Program'
-              },
-              {
-                model: models.Semester,
-                as: 'Semester'
-              }
-            ]
-          }
-        });
+        const questionBank = await models.QuestionBank.create(request.body);
+        const attributesQueryData = request.parseDatabaseQuery('attributes', request.query.attributes);
+        const includeQueryData = request.parseDatabaseQuery('include', request.query.include);
+        const databaseQuery = {
+          paranoid: false,
+          subQuery: false
+        };
+
+        if(attributesQueryData !== null) databaseQuery.attributes = attributesQueryData;
+
+        if(includeQueryData !== null) databaseQuery.include = includeQueryData;
   
-        await questionBank.reload();
+        await questionBank.reload(databaseQuery);
         return response.respond({
           name: 'ResourceCreationSuccess',
           payload: {questionBank}
@@ -102,28 +100,20 @@ function destroy() {
     roleGuard('super_administrator'),
     async function(request, response, next) {
       try {
-        const questionBank = await models.QuestionBank.findOne({
-          include: {
-            model: models.Course,
-            as: 'Course',
-            include: [
-              {
-                model: models.Level,
-                as: 'Level'
-              },
-              {
-                model: models.Program,
-                as: 'Program'
-              },
-              {
-                model: models.Semester,
-                as: 'Semester'
-              }
-            ]
-          },
+        const attributesQueryData = request.parseDatabaseQuery('attributes', request.query.attributes);
+        const includeQueryData = request.parseDatabaseQuery('include', request.query.include);
+        const databaseQuery = {
           paranoid: false,
-          where: {id: request.params.id}
-        });
+          subQuery: false
+        };
+
+        if(attributesQueryData !== null) databaseQuery.attributes = attributesQueryData;
+
+        if(includeQueryData !== null) databaseQuery.include = includeQueryData;
+
+        databaseQuery.where = {id: request.params.id};
+
+        const questionBank = await models.QuestionBank.findOne(databaseQuery);
 
         if(!questionBank) return next({name: 'ResourceNotFoundError'});
 
@@ -148,6 +138,7 @@ function index() {
     async function(request, response, next) {
       try {
         const attributesQueryData = request.parseDatabaseQuery('attributes', request.query.attributes);
+        const includeQueryData = request.parseDatabaseQuery('include', request.query.include);
         const orderQueryData = request.parseDatabaseQuery('order', request.query.order);
         const whereQueryData = request.parseDatabaseQuery('where', request.query.where);
         const { limit: limitQueryData, offset: offsetQueryData } = request.parsePagination(request.query.pagination);
@@ -158,6 +149,8 @@ function index() {
 
         if(attributesQueryData !== null) databaseQuery.attributes = attributesQueryData;
 
+        if(includeQueryData !== null) databaseQuery.include = includeQueryData;
+
         if(orderQueryData !== null) databaseQuery.order = orderQueryData;
 
         if(whereQueryData !== null) databaseQuery.where = whereQueryData;
@@ -165,25 +158,6 @@ function index() {
         if(limitQueryData !== null) databaseQuery.limit = limitQueryData;
 
         if(offsetQueryData !== null) databaseQuery.offset = offsetQueryData;
-
-        databaseQuery.include = {
-          model: models.Course,
-          as: 'Course',
-          include: [
-            {
-              model: models.Level,
-              as: 'Level'
-            },
-            {
-              model: models.Program,
-              as: 'Program'
-            },
-            {
-              model: models.Semester,
-              as: 'Semester'
-            }
-          ]
-        };
 
         const questionBanks = await models.QuestionBank.findAll(databaseQuery);
         
@@ -206,32 +180,24 @@ function obliterate() {
     roleGuard('super_administrator'),
     async function(request, response, next) {
       try {
-        const questionBank = await models.QuestionBank.findOne({
-          include: {
-            model: models.Course,
-            as: 'Course',
-            include: [
-              {
-                model: models.Level,
-                as: 'Level'
-              },
-              {
-                model: models.Program,
-                as: 'Program'
-              },
-              {
-                model: models.Semester,
-                as: 'Semester'
-              }
-            ]
-          },
+        const attributesQueryData = request.parseDatabaseQuery('attributes', request.query.attributes);
+        const includeQueryData = request.parseDatabaseQuery('include', request.query.include);
+        const databaseQuery = {
           paranoid: false,
-          where: {id: request.params.id}
-        });
+          subQuery: false
+        };
+
+        if(attributesQueryData !== null) databaseQuery.attributes = attributesQueryData;
+
+        if(includeQueryData !== null) databaseQuery.include = includeQueryData;
+
+        databaseQuery.where = {id: request.params.id};
+
+        const questionBank = await models.QuestionBank.findOne(databaseQuery);
 
         if(!questionBank) return next({name: 'ResourceNotFoundError'});
 
-        fs.rm(path.join(__dirname, '../../../../storage/uploads', questionBank.file), function(error) {});
+        fs.unlink(path.join(__dirname, '../../../../storage/uploads', questionBank.file), function(error) {});
         await questionBank.destroy({force: true});
         return response.respond({
           name: 'ResourceObliterationSuccess',
@@ -252,28 +218,20 @@ function restore() {
     roleGuard('super_administrator'),
     async function(request, response, next) {
       try {
-        const questionBank = await models.QuestionBank.findOne({
-          include: {
-            model: models.Course,
-            as: 'Course',
-            include: [
-              {
-                model: models.Level,
-                as: 'Level'
-              },
-              {
-                model: models.Program,
-                as: 'Program'
-              },
-              {
-                model: models.Semester,
-                as: 'Semester'
-              }
-            ]
-          },
+        const attributesQueryData = request.parseDatabaseQuery('attributes', request.query.attributes);
+        const includeQueryData = request.parseDatabaseQuery('include', request.query.include);
+        const databaseQuery = {
           paranoid: false,
-          where: {id: request.params.id}
-        });
+          subQuery: false
+        };
+
+        if(attributesQueryData !== null) databaseQuery.attributes = attributesQueryData;
+
+        if(includeQueryData !== null) databaseQuery.include = includeQueryData;
+
+        databaseQuery.where = {id: request.params.id};
+
+        const questionBank = await models.QuestionBank.findOne(databaseQuery);
 
         if(!questionBank) return next({name: 'ResourceNotFoundError'});
 
@@ -299,16 +257,11 @@ function update() {
       body: {
         schema: {
           $$strict: 'remove',
-          courseId: {
-            type: 'number',
-            optional: true,
-            integer: true,
-            positive: true
-          }
+          courseId: 'number|integer|positive|convert|optional'
         }
       },
       file: {
-        handle: 'single',
+        handler: 'single',
         destination: 'question-banks',
         schema: {
           file: {
@@ -321,47 +274,44 @@ function update() {
     async function(request, response, next) {
       try {
         const questionBank = await models.QuestionBank.findOne({
-          include: {
-            model: models.Course,
-            as: 'Course',
-            include: [
-              {
-                model: models.Level,
-                as: 'Level'
-              },
-              {
-                model: models.Program,
-                as: 'Program'
-              },
-              {
-                model: models.Semester,
-                as: 'Semester'
-              }
-            ]
-          },
           paranoid: false,
           where: {id: request.params.id}
         });
 
         if(!questionBank) return next({name: 'ResourceNotFoundError'});
 
-        if('courseId' in request.body) {
+        const questionBankData = {};
+
+        if(request.body.courseId) {
           const course = await models.Course.findOne({
             paranoid: false,
             where: {id: request.body.courseId}
           });
 
-          if(!course) return next({name: 'ResourceNotFoundError'});
+          if(course) questionBankData.courseId = request.body.courseId;
         }
 
         if(request.file) {
           const uploadsPath = path.join(__dirname, '../../../../storage/uploads');
           
-          fs.rm(path.join(uploadsPath, questionBank.file), function(error) {});
-          request.body.file = path.relative(uploadsPath, request.file.path);
+          fs.unlink(path.join(uploadsPath, questionBank.file), function(error) {});
+          questionBankData.file = path.relative(uploadsPath, request.file.path);
         }
 
-        await questionBank.update(request.body);
+        await questionBank.update(questionBankData);
+
+        const attributesQueryData = request.parseDatabaseQuery('attributes', request.query.attributes);
+        const includeQueryData = request.parseDatabaseQuery('include', request.query.include);
+        const databaseQuery = {
+          paranoid: false,
+          subQuery: false
+        };
+
+        if(attributesQueryData !== null) databaseQuery.attributes = attributesQueryData;
+
+        if(includeQueryData !== null) databaseQuery.include = includeQueryData;
+  
+        await questionBank.reload(databaseQuery);
         return response.respond({
           name: 'ResourceUpdateSuccess',
           payload: {questionBank}
@@ -381,28 +331,20 @@ function view() {
     authenticationGuard(),
     async function(request, response, next) {
       try {
-        const questionBank = await models.QuestionBank.findOne({
-          include: {
-            model: models.Course,
-            as: 'Course',
-            include: [
-              {
-                model: models.Level,
-                as: 'Level'
-              },
-              {
-                model: models.Program,
-                as: 'Program'
-              },
-              {
-                model: models.Semester,
-                as: 'Semester'
-              }
-            ]
-          },
+        const attributesQueryData = request.parseDatabaseQuery('attributes', request.query.attributes);
+        const includeQueryData = request.parseDatabaseQuery('include', request.query.include);
+        const databaseQuery = {
           paranoid: false,
-          where: {id: request.params.id}
-        });
+          subQuery: false
+        };
+
+        if(attributesQueryData !== null) databaseQuery.attributes = attributesQueryData;
+
+        if(includeQueryData !== null) databaseQuery.include = includeQueryData;
+
+        databaseQuery.where = {id: request.params.id};
+
+        const questionBank = await models.QuestionBank.findOne(databaseQuery);
 
         if(!questionBank) return next({name: 'ResourceNotFoundError'});
 

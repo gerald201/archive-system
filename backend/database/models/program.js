@@ -3,14 +3,6 @@ const { Model } = require('sequelize');
 function main(sequelize, DataTypes) {
   class Program extends Model {
     static associate(models) {
-      this.hasMany(models.Project, {
-        as: {
-          plural: 'Projects',
-          singular: 'Project'
-        },
-        foreignKey: 'programId'
-      });
-
       this.hasMany(models.Course, {
         as: {
           plural: 'Courses',

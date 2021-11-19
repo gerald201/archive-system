@@ -19,10 +19,6 @@ async function up(queryInterface, Sequelize) {
       type: Sequelize.STRING,
       unique: true
     },
-    programId: {
-      allowNull: false,
-      type: Sequelize.INTEGER
-    },
     userId: {
       allowNull: false,
       type: Sequelize.INTEGER

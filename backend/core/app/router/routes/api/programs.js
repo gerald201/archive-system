@@ -4,6 +4,10 @@ const controller = require('../../../controllers/api/program');
 const router = express.Router();
 
 router
+  .route('/count')
+  .get(controller.count());
+
+router
   .route('/create')
   .post(controller.create());
 
@@ -17,11 +21,11 @@ router
 
 router
   .route('/obliterate/:id')
-  .patch(controller.obliterate());
+  .get(controller.obliterate());
 
 router
   .route('/restore/:id')
-  .patch(controller.restore());
+  .post(controller.restore());
 
 router
   .route('/update/:id')

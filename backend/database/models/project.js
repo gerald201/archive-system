@@ -3,11 +3,6 @@ const { Model } = require('sequelize');
 function main(sequelize, DataTypes) {
   class Project extends Model {
     static associate(models) {
-      this.belongsTo(models.Program, {
-        as: 'Program',
-        foreignKey: 'programId'
-      });
-
       this.belongsTo(models.User, {
         as: 'User',
         foreignKey: 'userId'

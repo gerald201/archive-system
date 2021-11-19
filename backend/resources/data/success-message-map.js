@@ -15,6 +15,10 @@ module.exports = {
     status: 200,
     message: 'The authorized user has been successfully retrieved.'
   },
+  AuthorizedUserUpdateSuccess: {
+    status: 200,
+    message: 'The authorized user has been successfully updated.'
+  },
   ResourceCreationSuccess: {
     status: 201,
     message: 'The resource has been successfully created.'

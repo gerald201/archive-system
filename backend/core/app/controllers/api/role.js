@@ -1,7 +1,38 @@
 const models = require('../../../../database/models');
+const authenticationGuard = require('../../guards/authentication');
+
+function count() {
+  return [
+    authenticationGuard(),
+    async function(request, response, next) {
+      try {
+        const whereQueryData = request.parseDatabaseQuery('where', request.query.where);
+        const databaseQuery = {
+          paranoid: false,
+          subQuery: false
+        };
+        
+        if(whereQueryData !== null) databaseQuery.where = whereQueryData;
+
+        const count = await models.Role.count(databaseQuery);
+
+        return response.respond({
+          name: 'ResourceRetrievalSuccess',
+          payload: {count}
+        });
+      } catch(error) {
+        return next({
+          name: 'ServerError',
+          error
+        });
+      }
+    }
+  ];
+}
 
 function index() {
   return [
+    authenticationGuard(),
     async function(request, response, next) {
       try {
         const attributesQueryData = request.parseDatabaseQuery('attributes', request.query.attributes);
@@ -43,10 +74,17 @@ function view() {
   return [
     async function(request, response, next) {
       try {
-        const role = await models.Role.findOne({
+        const attributesQueryData = request.parseDatabaseQuery('attributes', request.query.attributes);
+        const databaseQuery = {
           paranoid: false,
-          where: {id: request.params.id}
-        });
+          subQuery: false
+        };
+
+        if(attributesQueryData !== null) databaseQuery.attributes = attributesQueryData;
+
+        databaseQuery.where = {id: request.params.id};
+        
+        const role = await models.Role.findOne(databaseQuery);
 
         if(!role) return next({name: 'ResourceNotFoundError'});
 
@@ -65,6 +103,7 @@ function view() {
 }
 
 module.exports = {
+  count,
   index,
   view
 };

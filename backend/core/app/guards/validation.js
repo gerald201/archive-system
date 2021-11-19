@@ -137,7 +137,7 @@ function validateFile(handler, request, schema) {
     if(individualErrors.length) {
       request.files
         ?.forEach(function(file) {
-          if(typeof file?.path == 'string') fs.rm(file.path, function(error) {});
+          if(typeof file?.path == 'string') fs.unlink(file.path, function(error) {});
         });
       
       errors.push(...individualErrors);
@@ -163,7 +163,7 @@ function validateFile(handler, request, schema) {
         });
 
       if(individualErrors.length) {
-        if(typeof request.files?.[key]?.path == 'string') fs.rm(request.files[key].path, function(error) {});
+        if(typeof request.files?.[key]?.path == 'string') fs.unlink(request.files[key].path, function(error) {});
         
         errors.push(...individualErrors);
       }
@@ -179,7 +179,7 @@ function validateFile(handler, request, schema) {
       });
 
     if(individualErrors.length) {
-      if(typeof request.file?.path == 'string') fs.rm(request.file.path, function(error) {});
+      if(typeof request.file?.path == 'string') fs.unlink(request.file.path, function(error) {});
 
       errors.push(...individualErrors);
     }

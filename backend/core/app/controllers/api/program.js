@@ -3,6 +3,35 @@ const authenticationGuard = require('../../guards/authentication');
 const roleGuard = require('../../guards/role');
 const validationGuard = require('../../guards/validation');
 
+function count() {
+  return [
+    authenticationGuard(),
+    async function(request, response, next) {
+      try {
+        const whereQueryData = request.parseDatabaseQuery('where', request.query.where);
+        const databaseQuery = {
+          paranoid: false,
+          subQuery: false
+        };
+        
+        if(whereQueryData !== null) databaseQuery.where = whereQueryData;
+
+        const count = await models.Program.count(databaseQuery);
+
+        return response.respond({
+          name: 'ResourceRetrievalSuccess',
+          payload: {count}
+        });
+      } catch(error) {
+        return next({
+          name: 'ServerError',
+          error
+        });
+      }
+    }
+  ];
+}
+
 function create() {
   return [
     roleGuard('super_administrator'),
@@ -10,15 +39,8 @@ function create() {
       body: {
         schema: {
           $$strict: 'remove',
-          name: {
-            type: 'string',
-            empty: false
-          },
-          description: {
-            type: 'string',
-            empty: false,
-            optional: true
-          }
+          name: 'string|empty:false',
+          description: 'string|empty:false|optional'
         }
       }
     }),
@@ -32,8 +54,15 @@ function create() {
         if(existingProgram) return next({name: 'ResourceUniqueViolationError'});
   
         const program = await models.Program.create(request.body);
+        const attributesQueryData = request.parseDatabaseQuery('attributes', request.query.attributes);
+        const databaseQuery = {
+          paranoid: false,
+          subQuery: false
+        };
 
-        await program.reload();
+        if(attributesQueryData !== null) databaseQuery.attributes = attributesQueryData;
+
+        await program.reload(databaseQuery);
         return response.respond({
           name: 'ResourceCreationSuccess',
           payload: {program}
@@ -53,10 +82,17 @@ function destroy() {
     roleGuard('super_administrator'),
     async function(request, response, next) {
       try {
-        const program = await models.Program.findOne({
+        const attributesQueryData = request.parseDatabaseQuery('attributes', request.query.attributes);
+        const databaseQuery = {
           paranoid: false,
-          where: {id: request.params.id}
-        });
+          subQuery: false
+        };
+
+        if(attributesQueryData !== null) databaseQuery.attributes = attributesQueryData;
+
+        databaseQuery.where = {id: request.params.id};
+
+        const program = await models.Program.findOne(databaseQuery);
 
         if(!program) return next({name: 'ResourceNotFoundError'});
 
@@ -120,10 +156,17 @@ function obliterate() {
     roleGuard('super_administrator'),
     async function(request, response, next) {
       try {
-        const program = await models.Program.findOne({
+        const attributesQueryData = request.parseDatabaseQuery('attributes', request.query.attributes);
+        const databaseQuery = {
           paranoid: false,
-          where: {id: request.params.id}
-        });
+          subQuery: false
+        };
+
+        if(attributesQueryData !== null) databaseQuery.attributes = attributesQueryData;
+
+        databaseQuery.where = {id: request.params.id};
+
+        const program = await models.Program.findOne(databaseQuery);
 
         if(!program) return next({name: 'ResourceUniqueViolationError'});
 
@@ -147,10 +190,17 @@ function restore() {
     roleGuard('super_administrator'),
     async function(request, response, next) {
       try {
-        const program = await models.Program.findOne({
+        const attributesQueryData = request.parseDatabaseQuery('attributes', request.query.attributes);
+        const databaseQuery = {
           paranoid: false,
-          where: {id: request.params.id}
-        });
+          subQuery: false
+        };
+
+        if(attributesQueryData !== null) databaseQuery.attributes = attributesQueryData;
+
+        databaseQuery.where = {id: request.params.id};
+
+        const program = await models.Program.findOne(databaseQuery);
 
         if(!program) return next({name: 'ResourceUniqueViolationError'});
 
@@ -176,16 +226,8 @@ function update() {
       body: {
         schema: {
           $$strict: 'remove',
-          name: {
-            type: 'string',
-            empty: false,
-            optional: true
-          },
-          description: {
-            type: 'string',
-            empty: false,
-            optional: true
-          }
+          name: 'string|empty:false|optional',
+          description: 'string|empty:false|optional'
         }
       }
     }),
@@ -198,16 +240,30 @@ function update() {
 
         if(!program) return next({name: 'ResourceNotFoundError'});
 
-        if('name' in request.body) {
+        const programData = {};
+
+        if(request.body.name) {
           const existingProgram = await models.Program.findOne({
             paranoid: true,
             where: {name: request.body.name}
           });
 
-          if(existingProgram && existingProgram.id != program.id) return next({name: 'ResourceUniqueViolationError'});
+          if(!existingProgram) programData.name = request.body.name;
         }
 
-        await program.update(request.body);
+        if(request.body.description) programData.description = request.body.description;
+
+        await program.update(programData);
+
+        const attributesQueryData = request.parseDatabaseQuery('attributes', request.query.attributes);
+        const databaseQuery = {
+          paranoid: false,
+          subQuery: false
+        };
+
+        if(attributesQueryData !== null) databaseQuery.attributes = attributesQueryData;
+
+        await program.reload(databaseQuery);
         return response.respond({
           name: 'ResourceUpdateSuccess',
           payload: {program}
@@ -227,10 +283,17 @@ function view() {
     authenticationGuard(),
     async function(request, response, next) {
       try {
-        const program = await models.Program.findOne({
+        const attributesQueryData = request.parseDatabaseQuery('attributes', request.query.attributes);
+        const databaseQuery = {
           paranoid: false,
-          where: {id: request.params.id}
-        });
+          subQuery: false
+        };
+
+        if(attributesQueryData !== null) databaseQuery.attributes = attributesQueryData;
+
+        databaseQuery.where = {id: request.params.id};
+
+        const program = await models.Program.findOne(databaseQuery);
 
         if(!program) return next({name: 'ResourceNotFoundError'});
 
@@ -249,6 +312,7 @@ function view() {
 }
 
 module.exports = {
+  count,
   create,
   destroy,
   index,

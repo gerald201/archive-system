@@ -10,11 +10,22 @@ function count() {
     authenticationGuard(),
     async function(request, response, next) {
       try {
-        const projectCount = await models.Project.count({paranoid: false});
+        const includeQueryData = request.parseDatabaseQuery('include', request.query.include);
+        const whereQueryData = request.parseDatabaseQuery('where', request.query.where);
+        const databaseQuery = {
+          paranoid: false,
+          subQuery: false
+        };
+
+        if(includeQueryData !== null) databaseQuery.include = includeQueryData;
+        
+        if(whereQueryData !== null) databaseQuery.where = whereQueryData;
+
+        const count = await models.Project.count(databaseQuery);
 
         return response.respond({
           name: 'ResourceRetrievalSuccess',
-          payload: {projectCount}
+          payload: {count}
         });
       } catch(error) {
         return next({
@@ -33,19 +44,12 @@ function create() {
       body: {
         schema: {
           $$strict: 'remove',
-          name: {
-            type: 'string',
-            empty: false
-          },
-          userId: {
-            type: 'number',
-            integer: true,
-            positive: true
-          }
+          name: 'string|empty:false',
+          userId: 'number|integer|positive|convert'
         }
       },
       file: {
-        handle: 'single',
+        handler: 'single',
         destination: 'projects',
         schema: {
           file: {extensions: 'pdf'}
@@ -54,47 +58,73 @@ function create() {
     }),
     async function(request, response, next) {
       try {
-        const student = await models.User.findOne({
+        const user = await models.User.findOne({
           paranoid: false,
+          include: {
+            model: models.UserProfile,
+            as: 'UserProfile',
+            include: {
+              model: models.UserProfileType,
+              as: 'UserProfileType'
+            }
+          },
           where: {
             id: request.body.userId,
             '$UserProfile.UserProfileType.name$': 'student'
           }
         });
   
-        if(!student) return next({name: 'ResourceNotFoundError'});
+        if(!user) return next({name: 'ResourceNotFoundError'});
   
         const uploadsPath = path.join(__dirname, '../../../../storage/uploads');
 
         request.body.file = path.relative(uploadsPath, request.file.path);
 
-        const project = await models.Project.create(request.body, {
-          include: {
-            model: models.User,
-            as: 'User',
-            attributes: {
-              exclude: [
-                'hash',
-                'salt'
-              ]
-            },
-            include: {
-              model: models.UserProfile,
-              as: 'UserProfile',
-              include: {
-                model: models.UserProfileType,
-                as: 'UserProfileType'
-              }
+        const project = await models.Project.create(request.body);
+        const attributesQueryData = request.parseDatabaseQuery('attributes', request.query.attributes);
+        const includeQueryData = request.parseDatabaseQuery('include', request.query.include);
+        const databaseQuery = {
+          paranoid: false,
+          subQuery: false
+        };
+
+        if(attributesQueryData !== null) databaseQuery.attributes = attributesQueryData;
+
+        if(includeQueryData !== null) {
+          const userIncludeIndex = includeQueryData
+            .findIndex(function(include) {
+              return include.model == models.User
+            });
+
+          if(userIncludeIndex >= 0) {
+            const excludedUserAttributes = [
+              'hash',
+              'salt'
+            ];
+            
+            if(includeQueryData[userIncludeIndex].attributes) {
+              includeQueryData[userIncludeIndex].attributes.exclude = includeQueryData[userIncludeIndex].attributes.exclude.concat(excludedUserAttributes
+                .filter(function(attribute) {
+                  return !includeQueryData[userIncludeIndex].attributes.exclude.includes(attribute);
+                }));
+              includeQueryData[userIncludeIndex].attributes.include = includeQueryData[userIncludeIndex].attributes.include
+                .filter(function(attribute) {
+                  return !excludedUserAttributes.includes(attribute);
+                });
             }
+            else includeQueryData[userIncludeIndex].attributes = {exclude: excludedUserAttributes};
           }
-        });
+
+          databaseQuery.include = includeQueryData;
+        }
   
-        await project.reload();
+        await project.reload(databaseQuery);
         return response.respond({
           name: 'ResourceCreationSuccess',
           payload: {project}
         });
       } catch(error) {
+        console.log(error);
         return next({
           name: 'ServerError',
           error
@@ -109,28 +139,46 @@ function destroy() {
     roleGuard('super_administrator'),
     async function(request, response, next) {
       try {
-        const project = await models.Project.findOne({
-          include: {
-            model: models.User,
-            as: 'User',
-            attributes: {
-              exclude: [
-                'hash',
-                'salt'
-              ]
-            },
-            include: {
-              model: models.UserProfile,
-              as: 'UserProfile',
-              include: {
-                model: models.UserProfileType,
-                as: 'UserProfileType'
-              }
-            }
-          },
+        const attributesQueryData = request.parseDatabaseQuery('attributes', request.query.attributes);
+        const includeQueryData = request.parseDatabaseQuery('include', request.query.include);
+        const databaseQuery = {
           paranoid: false,
-          where: {id: request.params.id}
-        });
+          subQuery: false
+        };
+
+        if(attributesQueryData !== null) databaseQuery.attributes = attributesQueryData;
+
+        if(includeQueryData !== null) {
+          const userIncludeIndex = includeQueryData
+            .findIndex(function(include) {
+              return include.model == models.User
+            });
+
+          if(userIncludeIndex >= 0) {
+            const excludedUserAttributes = [
+              'hash',
+              'salt'
+            ];
+            
+            if(includeQueryData[userIncludeIndex].attributes) {
+              includeQueryData[userIncludeIndex].attributes.exclude = includeQueryData[userIncludeIndex].attributes.exclude.concat(excludedUserAttributes
+                .filter(function(attribute) {
+                  return !includeQueryData[userIncludeIndex].attributes.exclude.includes(attribute);
+                }));
+              includeQueryData[userIncludeIndex].attributes.include = includeQueryData[userIncludeIndex].attributes.include
+                .filter(function(attribute) {
+                  return !excludedUserAttributes.includes(attribute);
+                });
+            }
+            else includeQueryData[userIncludeIndex].attributes = {exclude: excludedUserAttributes};
+          }
+
+          databaseQuery.include = includeQueryData;
+        }
+
+        databaseQuery.where = {id: request.params.id};
+
+        const project = await models.Project.findOne(databaseQuery);
 
         if(!project) return next({name: 'ResourceNotFoundError'});
 
@@ -155,6 +203,7 @@ function index() {
     async function(request, response, next) {
       try {
         const attributesQueryData = request.parseDatabaseQuery('attributes', request.query.attributes);
+        const includeQueryData = request.parseDatabaseQuery('include', request.query.include);
         const orderQueryData = request.parseDatabaseQuery('order', request.query.order);
         const whereQueryData = request.parseDatabaseQuery('where', request.query.where);
         const { limit: limitQueryData, offset: offsetQueryData } = request.parsePagination(request.query.pagination);
@@ -165,6 +214,34 @@ function index() {
 
         if(attributesQueryData !== null) databaseQuery.attributes = attributesQueryData;
 
+        if(includeQueryData !== null) {
+          const userIncludeIndex = includeQueryData
+            .findIndex(function(include) {
+              return include.model == models.User
+            });
+
+          if(userIncludeIndex >= 0) {
+            const excludedUserAttributes = [
+              'hash',
+              'salt'
+            ];
+            
+            if(includeQueryData[userIncludeIndex].attributes) {
+              includeQueryData[userIncludeIndex].attributes.exclude = includeQueryData[userIncludeIndex].attributes.exclude.concat(excludedUserAttributes
+                .filter(function(attribute) {
+                  return !includeQueryData[userIncludeIndex].attributes.exclude.includes(attribute);
+                }));
+              includeQueryData[userIncludeIndex].attributes.include = includeQueryData[userIncludeIndex].attributes.include
+                .filter(function(attribute) {
+                  return !excludedUserAttributes.includes(attribute);
+                });
+            }
+            else includeQueryData[userIncludeIndex].attributes = {exclude: excludedUserAttributes};
+          }
+
+          databaseQuery.include = includeQueryData;
+        }
+
         if(orderQueryData !== null) databaseQuery.order = orderQueryData;
 
         if(whereQueryData !== null) databaseQuery.where = whereQueryData;
@@ -173,25 +250,6 @@ function index() {
 
         if(offsetQueryData !== null) databaseQuery.offset = offsetQueryData;
 
-        databaseQuery.include = {
-          model: models.User,
-          as: 'User',
-          attributes: {
-            exclude: [
-              'hash',
-              'salt'
-            ]
-          },
-          include: {
-            model: models.UserProfile,
-            as: 'UserProfile',
-            include: {
-              model: models.UserProfileType,
-              as: 'UserProfileType'
-            }
-          }
-        };
-
         const projects = await models.Project.findAll(databaseQuery);
         
         return response.respond({
@@ -199,6 +257,7 @@ function index() {
           payload: {projects}
         });
       } catch(error) {
+        console.log(error);
         return next({
           name: 'ServerError',
           error
@@ -212,32 +271,50 @@ function obliterate() {
   return [
     async function(request, response, next) {
       try {
-        const project = await models.Project.findOne({
-          include: {
-            model: models.User,
-            as: 'User',
-            attributes: {
-              exclude: [
-                'hash',
-                'salt'
-              ]
-            },
-            include: {
-              model: models.UserProfile,
-              as: 'UserProfile',
-              include: {
-                model: models.UserProfileType,
-                as: 'UserProfileType'
-              }
-            }
-          },
+        const attributesQueryData = request.parseDatabaseQuery('attributes', request.query.attributes);
+        const includeQueryData = request.parseDatabaseQuery('include', request.query.include);
+        const databaseQuery = {
           paranoid: false,
-          where: {id: request.params.id}
-        });
+          subQuery: false
+        };
+
+        if(attributesQueryData !== null) databaseQuery.attributes = attributesQueryData;
+
+        if(includeQueryData !== null) {
+          const userIncludeIndex = includeQueryData
+            .findIndex(function(include) {
+              return include.model == models.User
+            });
+
+          if(userIncludeIndex >= 0) {
+            const excludedUserAttributes = [
+              'hash',
+              'salt'
+            ];
+            
+            if(includeQueryData[userIncludeIndex].attributes) {
+              includeQueryData[userIncludeIndex].attributes.exclude = includeQueryData[userIncludeIndex].attributes.exclude.concat(excludedUserAttributes
+                .filter(function(attribute) {
+                  return !includeQueryData[userIncludeIndex].attributes.exclude.includes(attribute);
+                }));
+              includeQueryData[userIncludeIndex].attributes.include = includeQueryData[userIncludeIndex].attributes.include
+                .filter(function(attribute) {
+                  return !excludedUserAttributes.includes(attribute);
+                });
+            }
+            else includeQueryData[userIncludeIndex].attributes = {exclude: excludedUserAttributes};
+          }
+
+          databaseQuery.include = includeQueryData;
+        }
+
+        databaseQuery.where = {id: request.params.id};
+
+        const project = await models.Project.findOne(databaseQuery);
 
         if(!project) return next({name: 'ResourceNotFoundError'});
 
-        fs.rm(path.join(__dirname, '../../../../storage/uploads', project.file), function(error) {});
+        fs.unlink(path.join(__dirname, '../../../../storage/uploads', project.file), function(error) {});
         await project.destroy({force: true});
         return response.respond({
           name: 'ResourceObliterationSuccess',
@@ -257,28 +334,46 @@ function restore() {
   return [
     async function(request, response, next) {
       try {
-        const project = await models.Project.findOne({
-          include: {
-            model: models.User,
-            as: 'User',
-            attributes: {
-              exclude: [
-                'hash',
-                'salt'
-              ]
-            },
-            include: {
-              model: models.UserProfile,
-              as: 'UserProfile',
-              include: {
-                model: models.UserProfileType,
-                as: 'UserProfileType'
-              }
-            }
-          },
+        const attributesQueryData = request.parseDatabaseQuery('attributes', request.query.attributes);
+        const includeQueryData = request.parseDatabaseQuery('include', request.query.include);
+        const databaseQuery = {
           paranoid: false,
-          where: {id: request.params.id}
-        });
+          subQuery: false
+        };
+
+        if(attributesQueryData !== null) databaseQuery.attributes = attributesQueryData;
+
+        if(includeQueryData !== null) {
+          const userIncludeIndex = includeQueryData
+            .findIndex(function(include) {
+              return include.model == models.User
+            });
+
+          if(userIncludeIndex >= 0) {
+            const excludedUserAttributes = [
+              'hash',
+              'salt'
+            ];
+            
+            if(includeQueryData[userIncludeIndex].attributes) {
+              includeQueryData[userIncludeIndex].attributes.exclude = includeQueryData[userIncludeIndex].attributes.exclude.concat(excludedUserAttributes
+                .filter(function(attribute) {
+                  return !includeQueryData[userIncludeIndex].attributes.exclude.includes(attribute);
+                }));
+              includeQueryData[userIncludeIndex].attributes.include = includeQueryData[userIncludeIndex].attributes.include
+                .filter(function(attribute) {
+                  return !excludedUserAttributes.includes(attribute);
+                });
+            }
+            else includeQueryData[userIncludeIndex].attributes = {exclude: excludedUserAttributes};
+          }
+
+          databaseQuery.include = includeQueryData;
+        }
+
+        databaseQuery.where = {id: request.params.id};
+
+        const project = await models.Project.findOne(databaseQuery);
 
         if(!project) return next({name: 'ResourceNotFoundError'});
 
@@ -304,22 +399,13 @@ function update() {
       body: {
         schema: {
           $$strict: 'remove',
-          name: {
-            type: 'string',
-            empty: false,
-            optional: true
-          },
-          userId: {
-            type: 'number',
-            optional: true,
-            integer: true,
-            positive: true
-          }
+          name: 'string|empty:false|optional',
+          userId: 'number|integer|positive|convert|optional'
         }
       },
       file: {
-        handle: 'single',
-        destination: 'question-banks',
+        handler: 'single',
+        destination: 'projects',
         schema: {
           file: {
             extensions: 'pdf',
@@ -331,31 +417,17 @@ function update() {
     async function(request, response, next) {
       try {
         const project = await models.Project.findOne({
-          include: {
-            model: models.User,
-            as: 'User',
-            attributes: {
-              exclude: [
-                'hash',
-                'salt'
-              ]
-            },
-            include: {
-              model: models.UserProfile,
-              as: 'UserProfile',
-              include: {
-                model: models.UserProfileType,
-                as: 'UserProfileType'
-              }
-            }
-          },
           paranoid: false,
           where: {id: request.params.id}
         });
 
         if(!project) return next({name: 'ResourceNotFoundError'});
 
-        if('userId' in request.body) {
+        const projectData = {};
+
+        if(request.body.name) projectData.name = request.body.name;
+        
+        if(request.body.userId) {
           const user = await models.User.findOne({
             paranoid: false,
             where: {
@@ -364,17 +436,56 @@ function update() {
             }
           });
 
-          if(!user) return next({name: 'ResourceNotFoundError'});
+          if(user) projectData.userId = request.body.userId;
         }
 
         if(request.file) {
           const uploadsPath = path.join(__dirname, '../../../../storage/uploads');
 
-          fs.rm(path.join(uploadsPath, project.file), function(error) {});
-          request.body.file = path.relative(uploadsPath, request.file.path);
+          fs.unlink(path.join(uploadsPath, project.file), function(error) {});
+          projectData.file = path.relative(uploadsPath, request.file.path);
         }
 
         await project.update(request.body);
+
+        const attributesQueryData = request.parseDatabaseQuery('attributes', request.query.attributes);
+        const includeQueryData = request.parseDatabaseQuery('include', request.query.include);
+        const databaseQuery = {
+          paranoid: false,
+          subQuery: false
+        };
+
+        if(attributesQueryData !== null) databaseQuery.attributes = attributesQueryData;
+
+        if(includeQueryData !== null) {
+          const userIncludeIndex = includeQueryData
+            .findIndex(function(include) {
+              return include.model == models.User
+            });
+
+          if(userIncludeIndex >= 0) {
+            const excludedUserAttributes = [
+              'hash',
+              'salt'
+            ];
+            
+            if(includeQueryData[userIncludeIndex].attributes) {
+              includeQueryData[userIncludeIndex].attributes.exclude = includeQueryData[userIncludeIndex].attributes.exclude.concat(excludedUserAttributes
+                .filter(function(attribute) {
+                  return !includeQueryData[userIncludeIndex].attributes.exclude.includes(attribute);
+                }));
+              includeQueryData[userIncludeIndex].attributes.include = includeQueryData[userIncludeIndex].attributes.include
+                .filter(function(attribute) {
+                  return !excludedUserAttributes.includes(attribute);
+                });
+            }
+            else includeQueryData[userIncludeIndex].attributes = {exclude: excludedUserAttributes};
+          }
+
+          databaseQuery.include = includeQueryData;
+        }
+
+        await project.reload(databaseQuery);
         return response.respond({
           name: 'ResourceUpdateSuccess',
           payload: {project}
@@ -394,28 +505,46 @@ function view() {
     authenticationGuard(),
     async function(request, response, next) {
       try {
-        const project = await models.Project.findOne({
-          include: {
-            model: models.User,
-            as: 'User',
-            attributes: {
-              exclude: [
-                'hash',
-                'salt'
-              ]
-            },
-            include: {
-              model: models.UserProfile,
-              as: 'UserProfile',
-              include: {
-                model: models.UserProfileType,
-                as: 'UserProfileType'
-              }
-            }
-          },
+        const attributesQueryData = request.parseDatabaseQuery('attributes', request.query.attributes);
+        const includeQueryData = request.parseDatabaseQuery('include', request.query.include);
+        const databaseQuery = {
           paranoid: false,
-          where: {id: request.params.id}
-        });
+          subQuery: false
+        };
+
+        if(attributesQueryData !== null) databaseQuery.attributes = attributesQueryData;
+
+        if(includeQueryData !== null) {
+          const userIncludeIndex = includeQueryData
+            .findIndex(function(include) {
+              return include.model == models.User
+            });
+
+          if(userIncludeIndex >= 0) {
+            const excludedUserAttributes = [
+              'hash',
+              'salt'
+            ];
+            
+            if(includeQueryData[userIncludeIndex].attributes) {
+              includeQueryData[userIncludeIndex].attributes.exclude = includeQueryData[userIncludeIndex].attributes.exclude.concat(excludedUserAttributes
+                .filter(function(attribute) {
+                  return !includeQueryData[userIncludeIndex].attributes.exclude.includes(attribute);
+                }));
+              includeQueryData[userIncludeIndex].attributes.include = includeQueryData[userIncludeIndex].attributes.include
+                .filter(function(attribute) {
+                  return !excludedUserAttributes.includes(attribute);
+                });
+            }
+            else includeQueryData[userIncludeIndex].attributes = {exclude: excludedUserAttributes};
+          }
+
+          databaseQuery.include = includeQueryData;
+        }
+
+        databaseQuery.where = {id: request.params.id};
+
+        const project = await models.Project.findOne(databaseQuery);
 
         if(!project) return next({name: 'ResourceNotFoundError'});
 

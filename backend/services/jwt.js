@@ -36,7 +36,7 @@ async function checkJWTToken(type, string) {
 
     return token;
   } catch(error) {
-    return null;
+    throw error;
   }
 }
 
@@ -80,7 +80,7 @@ async function createJWTToken(type, userId) {
       token: tokenString
     }
   } catch(error) {
-    return null;
+    throw error;
   }
 }
 

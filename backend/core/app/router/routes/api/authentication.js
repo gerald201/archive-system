@@ -16,6 +16,10 @@ router
   .get(controller.signOut());
 
 router
+  .route('/update-password')
+  .patch(controller.updatePassword());
+
+router
   .route('/whoami')
   .get(controller.whoami());
 
