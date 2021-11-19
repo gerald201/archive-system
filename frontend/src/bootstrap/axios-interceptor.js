@@ -19,7 +19,15 @@ function main(store) {
   }, async function(error) {
     const request = error.config;
 
-    if(error.response?.data.payload.errorType == 'AuthorizationNotFoundError') {
+    if(!error.response) {
+      try {
+        await axios.get('/ping/guest');
+      } catch(secondError) {
+        store.commit('SET_APPLICATION_ERROR', true);
+      }
+    }
+    else if(error.response.status >= 500) store.commit('SET_APPLICATION_ERROR', true);
+    else if(error.response.data.payload.errorType == 'AuthorizationNotFoundError') {
       if(!request.$$refreshed && store.getters.authenticationRefreshTokenAvailable) {
         request.$$refreshed = true;
         const authenticationRefreshed = await store.dispatch('authenticationRefresh');
@@ -29,7 +37,6 @@ function main(store) {
 
       store.commit('SET_STORAGE_AUTHENTICATION_TOKEN', null);
     }
-    else if(!error.response || error.response.status >= 500) store.commit('SET_APPLICATION_ERROR', true);
 
     if(error.response) {
       emitter.emit('application:toast', {

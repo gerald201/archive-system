@@ -1,16 +1,20 @@
 <template>
-  <div class="g-projects-view py-5 w-100">
+  <div class="g-programs-view py-5 w-100">
     <h3>
-      Projects
+      Programs
     </h3>
-    <teleport to="body">
+
+    <teleport
+      to="body"
+      v-if="!$store.state.application.error"
+    >
       <div
-        aria-labelledby="g-projects-view-create-modal-label"
+        aria-labelledby="g-programs-view-create-modal-label"
         aria-hidden="true"
         class="modal fade"
         data-bs-backdrop="static"
         data-bs-keyboard="false"
-        id="g-projects-view-create-modal"
+        id="g-programs-view-create-modal"
         ref="createModalRef"
         tabindex="-1"
         v-if="$store.state.storage.authenticationUser?.UserProfile.UserProfileType?.name == 'staff'"
@@ -20,9 +24,9 @@
             <div class="modal-header">
               <h5
                 class="modal-title"
-                id="g-projects-view-create-modal-label"
+                id="g-programs-view-create-modal-label"
               >
-                Add a new project.
+                Add a new program.
               </h5>
               <button
                 aria-label="Close"
@@ -33,7 +37,7 @@
             </div>
             <div class="modal-body">
               <form 
-                id="g-projects-view-create-modal-form"
+                id="g-programs-view-create-modal-form"
                 @submit.prevent="submitCreateModalForm();"
               >
                 <div class="form-floating mb-3">
@@ -41,12 +45,12 @@
                     class="form-control"
                     :class="{'is-invalid': createModalFormDataStates.name.errors.length}"
                     :disabled="createModalProcessing"
-                    id="g-projects-view-create-modal-form-name-field"
+                    id="g-programs-view-create-modal-form-name-field"
                     placeholder="_"
                     type="text"
                     v-model="createModalFormData.name"
                   >
-                  <label for="g-projects-view-create-modal-form-name-field">
+                  <label for="g-programs-view-create-modal-form-name-field">
                     Name
                   </label>
                   <div
@@ -62,65 +66,26 @@
                     </div>
                   </div>
                 </div>
-                <div class="form-floating mb-3">
-                  <select
-                    aria-label="User"
-                    class="form-select"
-                    :class="{'is-invalid': createModalFormDataStates.userId.errors.length}"
-                    :disabled="createModalProcessing"
-                    id="g-projects-view-create-modal-form-user-id-field"
-                    v-model="createModalFormData.userId"
-                  >
-                    <option
-                      :key="`select-option-${user.id}`"
-                      :value="user.id"
-                      v-for="user in $store.state.storage.users"
-                      v-text="`${user.index} - ${user.UserProfile.firstName} ${user.UserProfile.lastName}`"
-                    ></option>
-                  </select>
-                  <label for="g-projects-view-create-modal-form-user-id-field">
-                    Student
-                  </label>
-                  <div
-                    class="invalid-feedback"
-                    v-if="createModalFormDataStates.userId.errors.length"
-                  >
-                    <div
-                      :key="`error-${error.type}`"
-                      v-for="error in createModalFormDataStates.userId.errors"
-                    >
-                      <b>{{error.type}}:</b>
-                      {{error.message}}
-                    </div>
-                  </div>
-                </div>
-                <div>
-                  <label
-                    class="form-label"
-                    for="g-projects-view-create-modal-form-file-field"
-                  >
-                    File
-                  </label>
+                <div class="form-floating">
                   <input
-                    accept="application/pdf"
                     class="form-control"
-                    :class="{'is-invalid': createModalFormDataStates.file.errors.length}"
+                    :class="{'is-invalid': createModalFormDataStates.description.errors.length}"
                     :disabled="createModalProcessing"
-                    id="g-projects-view-create-modal-form-file-field"
-                    ref="createModalFileInputRef"
-                    type="file"
-                    @change="
-                      if($event.target.files[0]) createModalFormData.file = $event.target.files[0];
-                      else createModalFormData.file = null;
-                    "
+                    id="g-programs-view-create-modal-form-description-field"
+                    placeholder="_"
+                    type="text"
+                    v-model="createModalFormData.description"
                   >
+                  <label for="g-programs-view-create-modal-form-description-field">
+                    Description
+                  </label>
                   <div
                     class="invalid-feedback"
-                    v-if="createModalFormDataStates.file.errors.length"
+                    v-if="createModalFormDataStates.description.errors.length"
                   >
                     <div
                       :key="`error-${error.type}`"
-                      v-for="error in createModalFormDataStates.file.errors"
+                      v-for="error in createModalFormDataStates.description.errors"
                     >
                       <b>{{error.type}}:</b>
                       {{error.message}}
@@ -140,7 +105,7 @@
               <button
                 class="btn btn-primary"
                 :disabled="createModalProcessing"
-                form="g-projects-view-create-modal-form"
+                form="g-programs-view-create-modal-form"
                 type="submit"
               >
                 <span
@@ -156,12 +121,12 @@
         </div>
       </div>
       <div
-        aria-labelledby="g-projects-view-destroy-modal-label"
+        aria-labelledby="g-programs-view-destroy-modal-label"
         aria-hidden="true"
         class="modal fade"
         data-bs-backdrop="static"
         data-bs-keyboard="false"
-        id="g-projects-view-destroy-modal"
+        id="g-programs-view-destroy-modal"
         ref="destroyModalRef"
         tabindex="-1"
         v-if="$store.state.storage.authenticationUser?.UserProfile.UserProfileType?.name == 'staff'"
@@ -171,8 +136,8 @@
             <div class="modal-header">
               <h5
                 class="modal-title"
-                id="g-projects-view-destroy-modal-label"
-                v-text="`Delete project '#${destroyModalProjectId}'.`"
+                id="g-programs-view-destroy-modal-label"
+                v-text="`Delete program '#${destroyModalProgramId}'.`"
               ></h5>
               <button
                 aria-label="Close"
@@ -183,7 +148,7 @@
             </div>
             <div class="modal-body">
               <p class="text-danger">
-                Are you sure you want to delete this project?
+                Are you sure you want to delete this program?
                 <span class="feather feather-alert-triangle fs-3"></span>
               </p>
             </div>
@@ -198,6 +163,7 @@
               <button
                 class="btn btn-danger"
                 :disabled="destroyModalProcessing"
+                type="submit"
                 @click="submitDestroyModalForm();"
               >
                 <span
@@ -213,12 +179,12 @@
         </div>
       </div>
       <div
-        aria-labelledby="g-projects-view-restore-modal-label"
+        aria-labelledby="g-programs-view-restore-modal-label"
         aria-hidden="true"
         class="modal fade"
         data-bs-backdrop="static"
         data-bs-keyboard="false"
-        id="g-projects-view-restore-modal"
+        id="g-programs-view-restore-modal"
         ref="restoreModalRef"
         tabindex="-1"
         v-if="$store.state.storage.authenticationUser?.UserProfile.UserProfileType?.name == 'staff'"
@@ -228,8 +194,8 @@
             <div class="modal-header">
               <h5
                 class="modal-title"
-                id="g-projects-view-restore-modal-label"
-                v-text="`Delete project '#${restoreModalProjectId}'.`"
+                id="g-programs-view-restore-modal-label"
+                v-text="`Restore program '#${restoreModalProgramId}'.`"
               ></h5>
               <button
                 aria-label="Close"
@@ -239,8 +205,8 @@
               ></button>
             </div>
             <div class="modal-body">
-              <p class="text-primary">
-                Are you sure you want to restore this project?
+              <p class="text-success">
+                Are you sure you want to restore this program?
                 <span class="feather feather-alert-triangle fs-3"></span>
               </p>
             </div>
@@ -253,8 +219,9 @@
                 Close
               </button>
               <button
-                class="btn btn-primary"
+                class="btn btn-success"
                 :disabled="restoreModalProcessing"
+                type="submit"
                 @click="submitRestoreModalForm();"
               >
                 <span
@@ -270,12 +237,12 @@
         </div>
       </div>
       <div
-        aria-labelledby="g-projects-view-update-modal-label"
+        aria-labelledby="g-programs-view-update-modal-label"
         aria-hidden="true"
         class="modal fade"
         data-bs-backdrop="static"
         data-bs-keyboard="false"
-        id="g-projects-view-update-modal"
+        id="g-programs-view-update-modal"
         ref="updateModalRef"
         tabindex="-1"
         v-if="$store.state.storage.authenticationUser?.UserProfile.UserProfileType?.name == 'staff'"
@@ -285,8 +252,8 @@
             <div class="modal-header">
               <h5
                 class="modal-title"
-                id="g-projects-view-update-modal-label"
-                v-text="`Edit project '#${updateModalProjectId}'.`"
+                id="g-programs-view-update-modal-label"
+                v-text="`Edit program '#${updateModalProgramId}'.`"
               ></h5>
               <button
                 aria-label="Close"
@@ -297,94 +264,56 @@
             </div>
             <div class="modal-body">
               <form 
-                id="g-projects-view-update-modal-form"
+                id="g-programs-view-update-modal-form"
                 @submit.prevent="submitUpdateModalForm();"
               >
                 <div class="form-floating mb-3">
+                  
                   <input
                     class="form-control"
-                    :class="{'is-invalid': createModalFormDataStates.name.errors.length}"
-                    :disabled="createModalProcessing"
-                    id="g-projects-view-create-modal-form-name-field"
+                    :class="{'is-invalid': updateModalFormDataStates.name.errors.length}"
+                    :disabled="updateModalProcessing"
+                    id="g-programs-view-update-modal-form-name-field"
                     placeholder="_"
                     type="text"
-                    v-model="createModalFormData.name"
+                    v-model="updateModalFormData.name"
                   >
-                  <label for="g-projects-view-create-modal-form-name-field">
+                  <label for="g-programs-view-update-modal-form-name-field">
                     Name
                   </label>
                   <div
                     class="invalid-feedback"
-                    v-if="createModalFormDataStates.name.errors.length"
+                    v-if="updateModalFormDataStates.name.errors.length"
                   >
                     <div
                       :key="`error-${error.type}`"
-                      v-for="error in createModalFormDataStates.name.errors"
+                      v-for="error in updateModalFormDataStates.name.errors"
                     >
                       <b>{{error.type}}:</b>
                       {{error.message}}
                     </div>
                   </div>
                 </div>
-                <div class="form-floating mb-3">
-                  <select
-                    aria-label="User"
-                    class="form-select"
-                    :class="{'is-invalid': updateModalFormDataStates.userId.errors.length}"
-                    :disabled="updateModalProcessing"
-                    id="g-projects-view-update-modal-form-user-id-field"
-                    v-model="updateModalFormData.userId"
-                  >
-                    <option
-                      :key="`select-option-${user.id}`"
-                      :value="user.id"
-                      v-for="user in $store.state.storage.users"
-                      v-text="`${user.index} - ${user.UserProfile.firstName} ${user.UserProfile.lastName}`"
-                    ></option>
-                  </select>
-                  <label for="g-projects-view-update-modal-form-user-id-field">
-                    Student
-                  </label>
-                  <div
-                    class="invalid-feedback"
-                    v-if="updateModalFormDataStates.userId.errors.length"
-                  >
-                    <div
-                      :key="`error-${error.type}`"
-                      v-for="error in updateModalFormDataStates.userId.errors"
-                    >
-                      <b>{{error.type}}:</b>
-                      {{error.message}}
-                    </div>
-                  </div>
-                </div>
-                <div>
-                  <label
-                    class="form-label"
-                    for="g-projects-view-update-modal-form-file-field"
-                  >
-                    File
-                  </label>
+                <div class="form-floating">
                   <input
-                    accept="application/pdf"
                     class="form-control"
-                    :class="{'is-invalid': updateModalFormDataStates.file.errors.length}"
+                    :class="{'is-invalid': updateModalFormDataStates.description.errors.length}"
                     :disabled="updateModalProcessing"
-                    id="g-projects-view-update-modal-form-file-field"
-                    ref="updateModalFileInputRef"
-                    type="file"
-                    @change="
-                      if($event.target.files[0]) updateModalFormData.file = $event.target.files[0];
-                      else updateModalFormData.file = null;
-                    "
+                    id="g-programs-view-update-modal-form-description-field"
+                    placeholder="_"
+                    type="text"
+                    v-model="updateModalFormData.description"
                   >
+                  <label for="g-programs-view-update-modal-form-description-field">
+                    Description
+                  </label>
                   <div
                     class="invalid-feedback"
-                    v-if="updateModalFormDataStates.file.errors.length"
+                    v-if="updateModalFormDataStates.description.errors.length"
                   >
                     <div
                       :key="`error-${error.type}`"
-                      v-for="error in updateModalFormDataStates.file.errors"
+                      v-for="error in updateModalFormDataStates.description.errors"
                     >
                       <b>{{error.type}}:</b>
                       {{error.message}}
@@ -404,7 +333,7 @@
               <button
                 class="btn btn-primary"
                 :disabled="updateModalProcessing"
-                form="g-projects-view-update-modal-form"
+                form="g-programs-view-update-modal-form"
                 type="submit"
               >
                 <span
@@ -419,64 +348,6 @@
           </div>
         </div>
       </div>
-      <div
-        aria-labelledby="g-projects-view-view-modal-label"
-        aria-hidden="true"
-        class="modal fade"
-        data-bs-backdrop="static"
-        data-bs-keyboard="false"
-        id="g-projects-view-view-modal"
-        ref="viewModalRef"
-        tabindex="-1"
-      >
-        <div class="modal-dialog modal-dialog-centered modal-fullscreen">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5
-                class="modal-title"
-                id="g-projects-view-view-modal-label"
-                v-text="`Viewing file for project '#${viewModalProjectId}'.`"
-              ></h5>
-              <button
-                aria-label="Close"
-                class="btn-close"
-                data-bs-dismiss="modal"
-              ></button>
-            </div>
-            <div class="modal-body overflow-hidden p-0">
-              <iframe
-                class="h-100 w-100"
-                frameborder="0"
-                height="100%"
-                :src="viewModalFileUrl"
-                width="100%"
-              ></iframe>
-            </div>
-            <div class="modal-footer">
-              <button
-                class="btn btn-secondary"
-                data-bs-dismiss="modal"
-              >
-                Close
-              </button>
-              <button
-                class="btn btn-primary"
-                :disabled="downloading"
-                @click="downloadViewModalFile();"
-                v-if="$store.state.storage.authenticationUser?.UserProfile.UserProfileType?.name == 'student'"
-              >
-                <span
-                  aria-hidden="true"
-                  class="spinner-grow spinner-grow-sm"
-                  role="status"
-                  v-if="downloading"
-                ></span>
-                Download
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
     </teleport>
     <div
       class="align-items-center d-flex justify-content-end py-2 w-100"
@@ -485,24 +356,24 @@
       <button
         class="btn btn-primary"
         data-bs-toggle="modal"
-        data-bs-target="#g-projects-view-create-modal"
+        data-bs-target="#g-programs-view-create-modal"
       >
-        New Project
+        New Program
         <span class="feather feather-plus"></span>
       </button>
     </div>
     <transition name="g-transition">
       <div
         class="align-items-center d-flex justify-content-center p-2 w-100"
-        v-if="$store.state.storage.projects === null"
+        v-if="$store.state.storage.programs === null"
       >
         <div class="spinner-grow text-primary" role="status"></div>
       </div>
       <div
         class="p-2 text-secondary"
-        v-else-if="$store.state.storage.projectCount === 0"
+        v-else-if="$store.state.storage.programCount === 0"
       >
-        No projects to show!
+        No programs to show!
       </div>
       <div
         class="data-container position-relative w-100"
@@ -514,32 +385,29 @@
         >
           <div
             class="data-item card mb-1 p-2 w-100"
-            :key="`project-${project.id}`"
-            v-for="project in currentPageItems"
+            :key="`program-${program.id}`"
+            v-for="program in currentPageItems"
           >
             <div class="banner align-items-center d-flex justify-content-between w-100">
               <div class="data align-items-center d-flex gap-1">
                 <button
-                  :aria-controls="`g-projects-view-project-${project.id}-data-collapse`"
+                  :aria-controls="`g-programs-view-program-${program.id}-data-collapse`"
                   aria-expanded="false"
                   class="toggler btn btn-sm"
-                  :data-bs-target="`#g-projects-view-project-${project.id}-data-collapse`"
+                  :data-bs-target="`#g-programs-view-program-${program.id}-data-collapse`"
                   data-bs-toggle="collapse"
                 >
                   <span class="icon d-inline-block feather feather-chevron-right"></span>
                 </button>
                 <div
                   class="fs-5 fw-bold text-primary"
-                  v-text="`#${project.id}`"
+                  v-text="`#${program.id}`"
                 ></div>
-                <div v-text="project.name"></div>
-                <div class="fst-italic text-secondary">
-                  <small v-text="$store.state.storage.authenticationUser?.index == project.User.index ? 'Me' : `${project.User.UserProfile.firstName} ${project.User.UserProfile.lastName}`"></small>
-                </div>
+                <div v-text="program.name"></div>
                 <transition name="g-transition">
                   <span
                     class="feather feather-slash text-danger"
-                    v-if="project.deletedAt"
+                    v-if="program.deletedAt"
                   ></span>
                 </transition>
               </div>
@@ -552,42 +420,38 @@
                     class="btn btn-sm"
                     :class="action == 'delete' ? 'btn-danger' : 'btn-primary'"
                     data-bs-toggle="modal"
-                    :data-bs-target="`#g-projects-view-${{
+                    :data-bs-target="`#g-programs-view-${{
                       delete: 'destroy',
                       edit: 'update',
-                      read: 'view',
                       restore: 'restore'
                     }[action]}-modal`"
                     :key="`action-${action}`"
-                    :title="action.replace(/^./, function(match) {
+                    :title="action.replace(/^\w/, function(match) {
                       return match.toUpperCase();
                     })"
                     v-for="action in ([
-                      'read',
                       'edit',
                       'delete',
                       'restore'
                     ]
                       .filter(function(a) {
-                        if($store.state.storage.authenticationUser?.UserProfile.UserProfileType?.name == 'student') return a == 'read';
+                        if($store.state.storage.authenticationUser?.UserProfile.UserProfileType?.name == 'student') return false;
 
-                        return !(a == 'delete' && project.deletedAt) && !(a == 'restore' && !project.deletedAt);
+                        return !(a == 'delete' && program.deletedAt) && !(a == 'restore' && !program.deletedAt);
                       }))"
                     @click="
-                      if(action == 'delete') destroyModalProjectId = project.id;
-                      else if(action == 'restore') restoreModalProjectId = project.id;
+                      if(action == 'delete') destroyModalProgramId = program.id;
+                      else if(action == 'restore') restoreModalProgramId = program.id;
                       else if(action == 'edit') {
-                        updateModalProjectId = project.id;
-                        updateModalFormData.name = project.name;
-                        updateModalFormData.userId = project.userId;
+                        updateModalProgramId = program.id;
+                        updateModalFormData.name = program.name;
+                        updateModalFormData.description = program.description;
                       }
-                      else if(action == 'read') viewModalProjectId = project.id;
                     "
                   >
                     <span
                       class="feather"
                       :class="{
-                        'feather-book-open': action == 'read',
                         'feather-edit-3': action == 'edit',
                         'feather-refresh-ccw': action == 'restore',
                         'feather-trash-2': action == 'delete',
@@ -599,48 +463,43 @@
             </div>
             <div
               class="collapse pt-2 w-100"
-              :id="`g-projects-view-project-${project.id}-data-collapse`"
+              :id="`g-programs-view-program-${program.id}-data-collapse`"
             >
               <div class="align-items-stretch border-top d-flex flex-column gap-1 pt-2 px-3 w-100">
                 <div class="d-flex gap-1 w-100">
-                  <span class="flex-shrink-0 overflow-hidden text-nowrap text-secondary">
+                  <span class="flex-shrink-0 overflow-hidden text-secondary">
                     Id &colon;
                   </span>
                   <span
                     class="flex-grow-1 flex-shrink-1 overflow-hidden"
-                    v-text="project.id"></span>
+                    v-text="program.id"
+                  ></span>
                 </div>
                 <div class="d-flex gap-1 w-100">
-                  <span class="flex-shrink-0 overflow-hidden text-nowrap text-secondary">
-                    Author &colon;
+                  <span class="flex-shrink-0 overflow-hidden text-secondary">
+                    Name &colon;
                   </span>
                   <span
                     class="flex-grow-1 flex-shrink-1 overflow-hidden"
-                    v-text="`${project.User.index} - ${project.User.UserProfile.firstName} ${project.User.UserProfile.lastName}`"
+                    v-text="program.name"
                   ></span>
                 </div>
-                <div
-                  class="d-flex gap-1 w-100"
-                  v-if="$store.state.storage.authenticationUser?.UserProfile.UserProfileType?.name == 'staff'"
-                >
-                  <span class="flex-shrink-0 overflow-hidden text-nowrap text-secondary">
-                    File &colon;
+                <div class="d-flex gap-1 w-100">
+                  <span class="flex-shrink-0 overflow-hidden text-secondary">
+                    Description &colon;
                   </span>
                   <span
                     class="flex-grow-1 flex-shrink-1 overflow-hidden"
-                    v-text="project.file"
+                    v-text="program.description"
                   ></span>
                 </div>
-                <div
-                  class="d-flex gap-1 w-100"
-                  v-if="$store.state.storage.authenticationUser?.UserProfile.UserProfileType?.name == 'staff'"
-                >
+                <div class="d-flex gap-1 w-100">
                   <span class="flex-shrink-0 overflow-hidden text-secondary">
                     Deleted &colon;
                   </span>
                   <span
                     class="flex-grow-1 flex-shrink-1 overflow-hidden"
-                    v-text="!!project.deletedAt"
+                    v-text="!!program.deletedAt"
                   ></span>
                 </div>
               </div>
@@ -651,9 +510,9 @@
     </transition>
     <transition name="g-transition">
       <nav
-        aria-label="Question banks view data table pagination"
+        aria-label="Programs view data table pagination"
         class="align-items-center d-flex justify-content-center py-2 w-100"
-        v-if="$store.state.storage.projects && $store.state.storage.projectCount !== null && $store.state.storage.projectCount > $store.getters.resourcePageSize && currentPageItems.length >= $store.getters.resourcePageSize"
+        v-if="$store.state.storage.programs && $store.state.storage.programCount !== null && $store.state.storage.programCount > $store.getters.resourcePageSize && currentPageItems.length >= $store.getters.resourcePageSize"
       >
         <ul class="pagination">
           <li
@@ -705,109 +564,82 @@
 </template>
 
 <script>
-import axios from 'axios';
 import { Modal } from 'bootstrap';
 import moment from 'moment';
 import { computed, reactive, ref, watch, watchEffect } from 'vue';
 import { useStore } from 'vuex';
-import apiConfiguration from '@/configuration/api';
 import { validate } from '@/services/fastest-validator';
 
 export default {
-  name: 'GProjectsView',
+  name: 'GProgramsView',
   setup() {
     const $store = useStore();
 
-    const createModalFileInputRef = ref(null);
     const createModalRef = ref(null);
     const destroyModalRef = ref(null);
     const restoreModalRef = ref(null);
-    const updateModalFileInputRef = ref(null);
     const updateModalRef = ref(null);
-    const viewModalRef = ref(null);
 
     let createModalResettingTimeout = null;
     const createModalValidationSchema = {
       name: 'string|empty:false',
-      userId: 'number|integer|positive',
-      file: {
-        type: 'class',
-        instanceOf: File
-      }
+      description: 'string|empty:false|optional'
     };
     let updateModalResettingTimeout = null;
     const updateModalValidationSchema = {
       name: 'string|empty:false|optional',
-      userId: 'number|integer|positive|optional',
-      file: {
-        type: 'class',
-        instanceOf: File,
-        optional: true
-      }
+      description: 'string|empty:false|optional'
     };
 
     const createModalBsModal = ref(null);
     const createModalFormData = reactive({
       name: null,
-      userId: $store.state.storage.users?.[0]?.id || null,
-      file: null,
+      description: null
     });
     const createModalFormDataStates = reactive({
       name: {
         changed: false,
         errors: []
       },
-      userId: {
-        changed: false,
-        errors: []
-      },
-      file: {
+      description: {
         changed: false,
         errors: []
       }
     });
-    const createModalProcessing = ref(false);
-    const createModalResetting = ref(false);
+    const createModalProcessing = ref(false); 
+    const createModalResetting = ref(false); 
     const currentPage = ref(1);
     const destroyModalBsModal = ref(null);
-    const destroyModalProjectId = ref(null);
     const destroyModalProcessing = ref(false); 
-    const downloading = ref(false);
+    const destroyModalProgramId = ref(null);
     const restoreModalBsModal = ref(null);
-    const restoreModalProjectId = ref(null);
     const restoreModalProcessing = ref(false);
+    const restoreModalProgramId = ref(null);
     const updateModalBsModal = ref(null);
     const updateModalFormData = reactive({
       name: null,
-      courseId: null,
-      file: null
+      description: null
     });
     const updateModalFormDataStates = reactive({
       name: {
         changed: false,
         errors: []
       },
-      userId: {
-        changed: false,
-        errors: []
-      },
-      file: {
+      description: {
         changed: false,
         errors: []
       }
     });
-    const updateModalProjectId = ref(null);
     const updateModalProcessing = ref(false);
+    const updateModalProgramId = ref(null);
     const updateModalResetting = ref(false);
-    const viewModalBsModal = ref(null);
-    const viewModalProjectId = ref(null);
 
     const currentPageItems = computed(function() {
-      return ($store.state.storage.projects || [])
-        .filter(function(project) {
-          return $store.state.storage.authenticationUser?.UserProfile.UserProfileType?.name == 'staff' || !project.deletedAt;
+      return ($store.state.storage.programs || [])
+        .filter(function(program) {
+          return $store.state.storage.authenticationUser?.UserProfile.UserProfileType?.name == 'staff' || !program.deletedAt;
         })
-        .filter(function(project, index) {
+        .filter(function(program, index) {
           const lowerLimit = (currentPage.value - 1) * $store.getters.resourcePageSize;
           const upperLimit = lowerLimit + $store.getters.resourcePageSize;
 
@@ -815,51 +647,11 @@ export default {
         });
     });
     const totalPages = computed(function() {
-      const availableProjectCount = ($store.state.storage.projects || [])
-        .filter(function(project) {
-          return $store.state.storage.authenticationUser?.UserProfile.UserProfileType?.name == 'staff' || !project.deletedAt;
-        }).length;
-
-      return availableProjectCount >= $store.state.storage.projectCount ? Math.ceil(availableProjectCount / $store.getters.resourcePageSize) : (Math.floor(availableProjectCount / $store.getters.resourcePageSize) + 1);
+      return ($store.state.storage.programs?.length || 0) >= $store.state.storage.programCount ? Math.ceil(($store.state.storage.programs?.length || 0) / $store.getters.resourcePageSize) : (Math.floor(($store.state.storage.programs?.length || 0) / $store.getters.resourcePageSize) + 1);
     });
-    const viewModalFileUrl = computed(function() {
-      const filePath = ($store.state.storage.projects || [])
-        .find(function(project) {
-          return project.id == viewModalProjectId.value;
-        })?.file || null;
-
-      return filePath ? `${apiConfiguration.url}/uploads/${filePath}` : null;
-    });
-
-    async function downloadViewModalFile() {
-      if(downloading.value) return;
-
-      const filePath = ($store.state.storage.projects || [])
-        .find(function(project) {
-          return project.id == viewModalProjectId.value;
-        })?.file;
-
-      if(!filePath) return;
-
-      downloading.value = true;
-
-      try {
-        const response = await axios.get(`/uploads/${filePath}`, {responseType: 'blob'});
-        const downloadUrl = URL.createObjectURL(response.data);
-        const downloadLinkEl = document.createElement('a');
-
-        downloadLinkEl.setAttribute('download', 'project.pdf');
-        downloadLinkEl.setAttribute('href', downloadUrl);
-        downloadLinkEl.setAttribute('style', 'display: none;');
-        document.documentElement.append(downloadLinkEl);
-        downloadLinkEl.click();
-      } finally {
-        downloading.value = false;
-      }
-    }
 
     function resetCreateModalForm(options) {
-      if(!createModalResettingTimeout) {
+      if(createModalResettingTimeout) {
         clearTimeout(createModalResettingTimeout);
         createModalResettingTimeout = null;
       }
@@ -874,8 +666,7 @@ export default {
           return Object.keys(createModalFormDataStates).includes(field) && !options.exclude.includes(field);
         })
         .forEach(function(field) {
-          if(field == 'courseId') createModalFormData[field] = $store.state.storage.users?.[0]?.id || null;
-          else createModalFormData[field] = null;
+          createModalFormData[field] = null;
           createModalFormDataStates[field].changed = false;
           createModalFormDataStates[field].errors = [];
         });
@@ -886,11 +677,12 @@ export default {
     }
 
     function resetUpdateModalForm(options) {
-      if(!updateModalResettingTimeout) {
-        clearTimeout(createModalResettingTimeout);
-        createModalResettingTimeout = null;
+      if(updateModalResettingTimeout) {
+        clearTimeout(updateModalResettingTimeout);
+        updateModalResettingTimeout = null;
       }
 
+      updateModalResetting.value = true;
       options = options?.constructor?.name?.toLowerCase() == 'object' ? options : (Array.isArray(options) ? {include: options} : (typeof options == 'string' ? {include: [options]} : {}));
       options.exclude = (Array.isArray(options?.exclude) ? options.exclude : (typeof options?.exclude == 'string' ? [options.exclude] : []));
       options.include = (Array.isArray(options?.include) ? options.include : (typeof options?.include == 'string' ? [options.include] : Object.keys(updateModalFormDataStates)));
@@ -915,6 +707,8 @@ export default {
 
       createModalProcessing.value = true;
 
+      if(!createModalFormData.description) createModalFormData.description == null;
+
       if(!validateCreateModalForm()) {
         createModalProcessing.value = false;
         return;
@@ -926,12 +720,12 @@ export default {
         form.append(key, createModalFormData[key]);
       }
 
-      const projectCreated = await $store.dispatch('createResource', {
-        type: 'projects',
+      const programCreated = await $store.dispatch('createResource', {
+        type: 'programs',
         body: form
       });
 
-      if(projectCreated) {
+      if(programCreated) {
         if (createModalBsModal.value) createModalBsModal.value.hide();
         
         resetCreateModalForm();
@@ -942,7 +736,7 @@ export default {
     }
 
     async function submitDestroyModalForm() {
-      if(isNaN(parseInt(destroyModalProjectId.value))) {
+      if(isNaN(parseInt(destroyModalProgramId.value))) {
         destroyModalProcessing.value = false;
         return;
       }
@@ -951,18 +745,18 @@ export default {
 
       destroyModalProcessing.value = true;
 
-      const projectDestroyed = await $store.dispatch('destroyResource', {
-        type: 'projects',
-        id: destroyModalProjectId.value
+      const programDestroyed = await $store.dispatch('destroyResource', {
+        type: 'programs',
+        id: destroyModalProgramId.value
       });
 
-      if (projectDestroyed && destroyModalBsModal.value) destroyModalBsModal.value.hide();
+      if (programDestroyed && destroyModalBsModal.value) destroyModalBsModal.value.hide();
 
       destroyModalProcessing.value = false;
     }
 
     async function submitRestoreModalForm() {
-      if(isNaN(parseInt(restoreModalProjectId.value))) {
+      if(isNaN(parseInt(restoreModalProgramId.value))) {
         restoreModalProcessing.value = false;
         return;
       }
@@ -971,18 +765,18 @@ export default {
 
       restoreModalProcessing.value = true;
 
-      const projectRestored = await $store.dispatch('restoreResource', {
-        type: 'projects',
-        id: restoreModalProjectId.value
+      const programRestored = await $store.dispatch('restoreResource', {
+        type: 'programs',
+        id: restoreModalProgramId.value
       });
 
-      if(projectRestored && restoreModalBsModal.value) restoreModalBsModal.value.hide();
+      if(programRestored && restoreModalBsModal.value) restoreModalBsModal.value.hide();
 
       restoreModalProcessing.value = false;
     }
 
     async function submitUpdateModalForm() {
-      if(isNaN(parseInt(updateModalProjectId.value))) {
+      if(isNaN(parseInt(updateModalProgramId.value))) {
         updateModalProcessing.value = false;
         return;
       }
@@ -1002,13 +796,13 @@ export default {
         form.append(key, updateModalFormData[key]);
       }
 
-      const questionUpdated = await $store.dispatch('updateResource', {
-        type: 'projects',
+      const programUpdated = await $store.dispatch('updateResource', {
+        type: 'programs',
         body: form,
-        id: updateModalProjectId.value
+        id: updateModalProgramId.value
       });
 
-      if(questionUpdated) {
+      if(programUpdated) {
         resetUpdateModalForm();
         if(updateModalBsModal.value) updateModalBsModal.value.hide();
       }
@@ -1087,7 +881,7 @@ export default {
 
       for(const field in updateModalFormDataStates) {
         if(!value[field]) updateModalFormData[field] = null;
-
+        
         updateModalFormDataStates[field].changed = value[field] != oldValue[field];
       }
 
@@ -1097,7 +891,7 @@ export default {
     watch(currentPage, function(value) {
       if(value < 1) currentPage.value == 1;
       else if(value > totalPages.value) currentPage.value = totalPages.value;
-      else if(currentPageItems.value.length < $store.getters.resourcePageSize && ($store.state.storage.courses || []).length < $store.state.storage.courseCount) $store.dispatch('requestResource', {type: 'projects'});
+      else if(currentPageItems.value.length < $store.getters.resourcePageSize && ($store.state.storage.programs || []).length < $store.state.storage.programCount) $store.dispatch('requestResource', {type: 'programs'});
     })
 
     watchEffect(function() {
@@ -1105,8 +899,6 @@ export default {
         if(!createModalBsModal.value) createModalBsModal.value = Modal.getOrCreateInstance(createModalRef.value);
 
         createModalRef.value.addEventListener('hide.bs.modal', function() {
-          if(createModalFileInputRef.value) createModalFileInputRef.value.value = null;
-
           resetCreateModalForm();
         });
       }
@@ -1116,7 +908,7 @@ export default {
         if(!destroyModalBsModal.value) destroyModalBsModal.value = Modal.getOrCreateInstance(destroyModalRef.value);
 
         destroyModalRef.value.addEventListener('hide.bs.modal', function() {
-          destroyModalProjectId.value = null;
+          destroyModalProgramId.value = null;
         });
       }
       else destroyModalBsModal.value = null;
@@ -1125,7 +917,7 @@ export default {
         if(!restoreModalBsModal.value) restoreModalBsModal.value = Modal.getOrCreateInstance(restoreModalRef.value);
 
         restoreModalRef.value.addEventListener('hide.bs.modal', function() {
-          restoreModalProjectId.value = null;
+          restoreModalProgramId.value = null;
         });
       }
       else restoreModalBsModal.value = null;
@@ -1134,22 +926,11 @@ export default {
         if(!updateModalBsModal.value) updateModalBsModal.value = Modal.getOrCreateInstance(updateModalRef.value);
 
         updateModalRef.value.addEventListener('hide.bs.modal', function() {
-          if(updateModalFileInputRef.value) updateModalFileInputRef.value.value = null;
-
-          updateModalProjectId.value = null;
+          updateModalProgramId.value = null;
           resetUpdateModalForm();
         });
       }
       else updateModalBsModal.value = null;
-
-      if(viewModalRef.value) {
-        if(!viewModalBsModal.value) viewModalBsModal.value = Modal.getOrCreateInstance(viewModalRef.value);
-
-        viewModalRef.value.addEventListener('hide.bs.modal', function() {
-          viewModalProjectId.value = null;
-        });
-      }
-      else viewModalBsModal.value = null;
     });
 
     watchEffect(function() {
@@ -1161,37 +942,30 @@ export default {
         if(restoreModalBsModal.value) restoreModalBsModal.value.hide();
 
         if(updateModalBsModal.value) updateModalBsModal.value.hide();
-
-        if(viewModalBsModal.value) viewModalBsModal.value.hide();
       }
     });
 
-    $store.dispatch('requestAllResource', {type: 'users'});
-
-    if(!$store.state.storage.projects?.length) $store.dispatch('requestResource', {type: 'projects'});
+    if(!$store.state.storage.programs?.length) $store.dispatch('requestResource', {type: 'programs'});
 
     return {
       createModalBsModal,
-      createModalFileInputRef,
       createModalFormData,
       createModalFormDataStates,
       createModalProcessing,
-      createModalResetting,
       createModalRef,
+      createModalResetting,
       currentPage,
       currentPageItems,
       destroyModalBsModal,
       destroyModalProcessing,
-      destroyModalProjectId,
+      destroyModalProgramId,
       destroyModalRef,
-      downloading,
-      downloadViewModalFile,
       moment,
       resetCreateModalForm,
       resetUpdateModalForm,
       restoreModalBsModal,
       restoreModalProcessing,
-      restoreModalProjectId,
+      restoreModalProgramId,
       restoreModalRef,
       submitCreateModalForm,
       submitDestroyModalForm,
@@ -1199,30 +973,25 @@ export default {
       submitUpdateModalForm,
       totalPages,
       updateModalBsModal,
-      updateModalFileInputRef,
       updateModalFormData,
       updateModalFormDataStates,
       updateModalProcessing,
-      updateModalProjectId,
-      updateModalResetting,
+      updateModalProgramId,
       updateModalRef,
+      updateModalResetting,
       validateCreateModalForm,
-      validateUpdateModalForm,
-      viewModalBsModal,
-      viewModalFileUrl,
-      viewModalProjectId,
-      viewModalRef
+      validateUpdateModalForm
     };
   }
 }
 </script>
 
 <style lang="scss" scoped>
-.g-projects-view {
+.g-programs-view {
   & > .data-container {
     overflow-x: auto;
 
-    & > .data-item > .banner > .data{
+    & > .data-item > .banner > .data {
       .toggler {
         --self__background-alpha: 0;
         --icon__transform: none;

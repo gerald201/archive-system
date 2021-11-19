@@ -2,6 +2,161 @@ import axios from 'axios';
 import { createStore } from 'vuex';
 import { emitter } from '@/services/emitter';
 
+function getApiEventData(type) {
+  const typesMap = {
+    courses: {
+      include: [
+        {
+          model: 'Level',
+          as: 'Level'
+        },
+        {
+          model: 'Program',
+          as: 'Program'
+        },
+        {
+          model: 'Semester',
+          as: 'Semester'
+        }
+      ],
+      where: {}
+    },
+    levels: {
+      include: [],
+      where: {}
+    },
+    programs: {
+      include: [],
+      where: {}
+    },
+    projects: {
+
+      include: [
+        {
+          model: 'User',
+          as: 'User',
+          include: [
+            {
+              model: 'Role',
+              as: 'Roles'
+            },
+            {
+              model: 'UserProfile',
+              as: 'UserProfile',
+              include: {
+                model: 'UserProfileType',
+                as: 'UserProfileType'
+              }
+            }
+          ]
+        }
+      ],
+      where: {}
+    },
+    'question-banks': {
+
+      include: [
+        {
+          model: 'Course',
+          as: 'Course',
+          include: [
+            {
+              model: 'Level',
+              as: 'Level'
+            },
+            {
+              model: 'Program',
+              as: 'Program'
+            },
+            {
+              model: 'Semester',
+              as: 'Semester'
+            }
+          ]
+        }
+      ],
+      where: {}
+    },
+    roles: {
+      include: [],
+      where: {}
+    },
+    semesters: {
+      include: [],
+      where: {}
+    },
+    users: {
+
+      include: [
+        {
+          model: 'Role',
+          as: 'Roles'
+        },
+        {
+          model: 'UserProfile',
+          as: 'UserProfile',
+          include: {
+            model: 'UserProfileType',
+            as: 'UserProfileType'
+          }
+        }
+      ],
+      where: {'$UserProfile.UserProfileType.name$': 'student'}
+    },
+    'user-profile-types': {
+      include: [],
+      where: {}
+    }
+  };
+
+  if(!(type in typesMap)) return null;
+
+  return {
+    action: type
+      .replace(/-\w/gi, function(match) {
+        return match[1].toUpperCase();
+      })
+      .replace(/^[a-z]/, function(match) {
+        return match.toUpperCase();
+      }),
+    count: type
+      .replace(/-\w/gi, function(match) {
+        return match[1].toUpperCase();
+      })
+      .replace(/s$/, '') + 'Count',
+    countMutation: type
+      .replace(/-/g, '_')
+      .replace(/s$/, '')
+      .toUpperCase() + '_COUNT',
+    effect: typesMap[type].include
+      .map(function(item) {
+        return item.model
+          .replace(/[A-Z]/g, function(match) {
+            return `-${match.toLowerCase()}`;
+          })
+          .replace(/^-/, '');
+      })
+      .filter(function(item) {
+        return item in typesMap;
+      }),
+    include: typesMap[type].include,
+    mutation: type
+      .replace(/-/g, '_')
+      .toUpperCase(),
+    plural: type
+      .replace(/-\w/gi, function(match) {
+        return match[1].toUpperCase();
+      }),
+    singular: type
+      .replace(/-\w/gi, function(match) {
+        return match[1].toUpperCase();
+      })
+      .replace(/s$/, ''),
+    url: `api/${type}`,
+    where: typesMap[type].where
+  }
+}
+
 export default createStore({
   state: {
     application: {
@@ -12,19 +167,28 @@ export default createStore({
       mainAsideOpened: false,
       mainHeaderHidden: false
     },
-    cache: {},
     settings: {},
     storage: {
       authenticationToken: null,
       authenticationUser: null,
+      courseCount: null,
+      courses: null,
+      levelCount: null,
+      levels: null,
+      programCount: null,
+      programs: null,
       projectCount:null,
       projects: null,
       questionBankCount:null,
       questionBanks: null,
-      resourcePageSize: 20,
+      roleCount: null,
       roles: null,
-      studentCount:null,
-      students: null,
+      semesterCount: null,
+      semesters: null,
+      userCount:null,
+      users: null,
+      userProfileTypeCount: null,
+      userProfileTypes: null
     },
   },
   getters: {
@@ -40,54 +204,875 @@ export default createStore({
     authenticationUserAvailable(state) {
       return !!state.storage.authenticationUser;
     },
-    authenticationUserHasRoles(state) {
-      return function(roles) {
-        const include = (Array.isArray(roles?.include) ? roles.include : (typeof roles?.include == 'string' ? [roles.include] : (Array.isArray(roles) ? roles : (typeof roles == 'string' ? [roles] : []))))
-          .filter(function(includedRole) {
-            return state.storage.roles
-              .some(function(role) {
-                return role.name == includedRole;
-              });
-          });
-        const exclude = (Array.isArray(roles?.exclude) ? roles.exclude : (typeof roles?.exclude == 'string' ? [roles.exclude] : []))
-          .filter(function(excludedRole) {
-            const roleExsits = state.storage.roles
-              .some(function(role) {
-                return role.name == excludedRole;
-              });
-
-            return roleExsits && !include.includes(excludedRole);
-          });
-        const includeCount = include
-          .reduce(function(accumulator, current) {
-            if(!state.storage.authenticationUser) return 0;
-
-            const check = state.storage.authenticationUser.Roles
-              .some(function(role) {
-                return role.name == current;
-              });
-
-            return check ? accumulator + 1 : accumulator;
-          }, 0);
-        const excludeCount = exclude
-          .reduce(function(accumulator, current) {
-            if(!state.storage.authenticationUser) return 0;
-
-            const check = state.storage.authenticationUser.Roles
-              .some(function(role) {
-                return role.name == current;
-              });
-
-            return check ? accumulator + 1 : accumulator;
-          }, 0);
-        const includeCheck = include.length ? includeCount > 0 : true;
-        const excludeCheck = exclude.length ? excludeCount == 0 : true;
-
-        return includeCheck || excludeCheck;
-      }
+    resourcePageSize() {
+      return 20;
     }
   },
   mutations: {
+    ADD_STORAGE_COURSES(state, payload) {
+      if(!Array.isArray(payload)) return;
+
+      state.storage.levels = (state.storage.levels || [])
+        .filter(function(level) {
+          return !payload
+            .some(function(item) {
+              return item.Level.id == level.id;
+            });
+        })
+        .concat(payload
+          .reduce(function(accumulator, current) {
+            return accumulator
+              .some(function(accumulated) {
+                return accumulated.id == current.Level.id;
+              }) ? accumulator : accumulator.concat([current.Level]);
+          }, []))
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
+      state.storage.programs = (state.storage.programs || [])
+        .filter(function(program) {
+          return !payload
+            .some(function(item) {
+              return item.Program.id == program.id;
+            });
+        })
+        .concat(payload
+          .reduce(function(accumulator, current) {
+            return accumulator
+              .some(function(accumulated) {
+                return accumulated.id == current.Program.id;
+              }) ? accumulator : accumulator.concat([current.Program]);
+          }, []))
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
+      state.storage.semesters = (state.storage.semesters || [])
+        .filter(function(semester) {
+          return !payload
+            .some(function(item) {
+              return item.Semester.id == semester.id;
+            });
+        })
+        .concat(payload
+          .reduce(function(accumulator, current) {
+            return accumulator
+              .some(function(accumulated) {
+                return accumulated.id == current.Semester.id;
+              }) ? accumulator : accumulator.concat([current.Semester]);
+          }, []))
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
+      state.storage.courses = (state.storage.courses || [])
+        .filter(function(course) {
+          return !payload
+            .some(function(item) {
+              return item.id == course.id;
+            });
+        })
+        .concat(payload
+          .reduce(function(accumulator, current) {
+            return accumulator
+              .some(function(accumulated) {
+                return accumulated.id == current.id;
+              }) ? accumulator : accumulator.concat([current]);
+          }, []))
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
+    },
+    ADD_STORAGE_LEVELS(state, payload) {
+      if(!Array.isArray(payload)) return;
+      
+      state.storage.levels = (state.storage.levels || [])
+        .filter(function(level) {
+          return !payload
+            .some(function(item) {
+              return item.id == level.id;
+            });
+        })
+        .concat(payload
+          .reduce(function(accumulator, current) {
+            return accumulator
+              .some(function(accumulated) {
+                return accumulated.id == current.id;
+              }) ? accumulator : accumulator.concat([current]);
+          }, []))
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
+    },
+    ADD_STORAGE_PROGRAMS(state, payload) {
+      if(!Array.isArray(payload)) return;
+      
+      state.storage.programs = (state.storage.programs || [])
+        .filter(function(program) {
+          return !payload
+            .some(function(item) {
+              return item.id == program.id;
+            });
+        })
+        .concat(payload
+          .reduce(function(accumulator, current) {
+            return accumulator
+              .some(function(accumulated) {
+                return accumulated.id == current.id;
+              }) ? accumulator : accumulator.concat([current]);
+          }, []))
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
+    },
+    ADD_STORAGE_PROJECTS(state, payload) {
+      if(!Array.isArray(payload)) return;
+      
+      state.storage.roles = (state.storage.roles || [])
+        .filter(function(existingRole) {
+          return !payload
+            .some(function(item) {
+              return item.User.Roles
+                .some(function(role) {
+                  return role.id == existingRole.id;
+                });
+            });
+        })
+        .concat(payload
+          .reduce(function(accumulator, current) {
+            return accumulator.concat(current.User.Roles
+              .filter(function(role) {
+                return !accumulator
+                  .some(function(accumulated) {
+                    return accumulated.id == role.id;
+                  });
+              }));
+          }, []))
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
+      state.storage.userProfileTypes = (state.storage.userProfileTypes || [])
+        .filter(function(userProfileType) {
+          return !payload
+            .some(function(item) {
+              return item.User.UserProfile.UserProfileType.id == userProfileType.id;
+            });
+        })
+        .concat(payload
+          .reduce(function(accumulator, current) {
+            return accumulator
+              .some(function(accumulated) {
+                return accumulated.id == current.User.UserProfile.UserProfileType.id;
+              }) ? accumulator : accumulator.concat([current.User.UserProfile.UserProfileType]);
+          }, []))
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
+      state.storage.users = (state.storage.users || [])
+        .filter(function(user) {
+          return !payload
+            .some(function(item) {
+              return item.User.id == user.id;
+            });
+        })
+        .concat(payload
+          .reduce(function(accumulator, current) {
+            return accumulator
+              .some(function(accumulated) {
+                return accumulated.id == current.User.id;
+              }) ? accumulator : accumulator.concat([current.User]);
+          }, []))
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
+      state.storage.projects = (state.storage.projects || [])
+        .filter(function(project) {
+          return !payload
+            .some(function(item) {
+              return item.id == project.id;
+            });
+        })
+        .concat(payload
+          .reduce(function(accumulator, current) {
+            return accumulator
+              .some(function(accumulated) {
+                return accumulated.id == current.id;
+              }) ? accumulator : accumulator.concat([current]);
+          }, []))
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
+    },
+    ADD_STORAGE_QUESTION_BANKS(state, payload) {
+      if(!Array.isArray(payload)) return;
+      
+      state.storage.levels = (state.storage.levels || [])
+        .filter(function(level) {
+          return !payload
+            .some(function(item) {
+              return item.Course.Level.id == level.id;
+            });
+        })
+        .concat(payload
+          .reduce(function(accumulator, current) {
+            return accumulator
+              .some(function(accumulated) {
+                return accumulated.id == current.Course.Level.id;
+              }) ? accumulator : accumulator.concat([current.Course.Level]);
+          }, []))
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
+      state.storage.programs = (state.storage.programs || [])
+        .filter(function(program) {
+          return !payload
+            .some(function(item) {
+              return item.Course.Program.id == program.id;
+            });
+        })
+        .concat(payload
+          .reduce(function(accumulator, current) {
+            return accumulator
+              .some(function(accumulated) {
+                return accumulated.id == current.Course.Program.id;
+              }) ? accumulator : accumulator.concat([current.Course.Program]);
+          }, []))
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
+      state.storage.semesters = (state.storage.semesters || [])
+        .filter(function(semester) {
+          return !payload
+            .some(function(item) {
+              return item.Course.Semester.id == semester.id;
+            });
+        })
+        .concat(payload
+          .reduce(function(accumulator, current) {
+            return accumulator
+              .some(function(accumulated) {
+                return accumulated.id == current.Course.Semester.id;
+              }) ? accumulator : accumulator.concat([current.Course.Semester]);
+          }, []))
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
+      state.storage.courses = (state.storage.courses || [])
+        .filter(function(course) {
+          return !payload
+            .some(function(item) {
+              return item.Course.id == course.id;
+            });
+        })
+        .concat(payload
+          .reduce(function(accumulator, current) {
+            return accumulator
+              .some(function(accumulated) {
+                return accumulated.id == current.Course.id;
+              }) ? accumulator : accumulator.concat([current.Course]);
+          }, []))
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
+      state.storage.questionBanks = (state.storage.questionBanks || [])
+        .filter(function(questionBank) {
+          return !payload
+            .some(function(item) {
+              return item.id == questionBank.id;
+            });
+        })
+        .concat(payload
+          .reduce(function(accumulator, current) {
+            return accumulator
+              .some(function(accumulated) {
+                return accumulated.id == current.id;
+              }) ? accumulator : accumulator.concat([current]);
+          }, []))
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
+    },
+    ADD_STORAGE_ROLES(state, payload) {
+      if(!Array.isArray(payload)) return;
+      
+      state.storage.roles = (state.storage.roles || [])
+        .filter(function(role) {
+          return !payload
+            .some(function(item) {
+              return item.id == role.id;
+            });
+        })
+        .concat(payload
+          .reduce(function(accumulator, current) {
+            return accumulator
+              .some(function(accumulated) {
+                return accumulated.id == current.id;
+              }) ? accumulator : accumulator.concat([current]);
+          }, []))
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
+    },
+    ADD_STORAGE_SEMESTERS(state, payload) {
+      if(!Array.isArray(payload)) return;
+      
+      state.storage.semesters = (state.storage.semesters || [])
+        .filter(function(semester) {
+          return !payload
+            .some(function(item) {
+              return item.id == semester.id;
+            });
+        })
+        .concat(payload
+          .reduce(function(accumulator, current) {
+            return accumulator
+              .some(function(accumulated) {
+                return accumulated.id == current.id;
+              }) ? accumulator : accumulator.concat([current]);
+          }, []))
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
+    },
+    ADD_STORAGE_USERS(state, payload) {
+      if(!Array.isArray(payload)) return;
+      
+      state.storage.roles = (state.storage.roles || [])
+        .filter(function(existingRole) {
+          return !payload
+            .some(function(item) {
+              return item.Roles
+                .some(function(role) {
+                  return role.id == existingRole.id;
+                });
+            });
+        })
+        .concat(payload
+          .reduce(function(accumulator, current) {
+            return accumulator.concat(current.Roles
+              .filter(function(role) {
+                return !accumulator
+                  .some(function(accumulated) {
+                    return accumulated.id == role.id;
+                  });
+              }));
+          }, []))
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
+      state.storage.userProfileTypes = (state.storage.userProfileTypes || [])
+        .filter(function(userProfileType) {
+          return !payload
+            .some(function(item) {
+              return item.UserProfile.UserProfileType.id == userProfileType.id;
+            });
+        })
+        .concat(payload
+          .reduce(function(accumulator, current) {
+            return accumulator
+              .some(function(accumulated) {
+                return accumulated.id == current.UserProfile.UserProfileType.id;
+              }) ? accumulator : accumulator.concat([current.UserProfile.UserProfileType]);
+          }, []))
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
+      state.storage.users = (state.storage.users || [])
+        .filter(function(user) {
+          return !payload
+            .some(function(item) {
+              return item.id == user.id;
+            });
+        })
+        .concat(payload
+          .reduce(function(accumulator, current) {
+            return accumulator
+              .some(function(accumulated) {
+                return accumulated.id == current.id;
+              }) ? accumulator : accumulator.concat([current]);
+          }, []))
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
+    },
+    ADD_STORAGE_USER_PROFILE_TYPES(state, payload) {
+      if(!Array.isArray(payload)) return;
+      
+      state.storage.userProfileTypes = (state.storage.userProfileTypes || [])
+        .filter(function(userProfileType) {
+          return !payload
+            .some(function(item) {
+              return item.id == userProfileType.id;
+            });
+        })
+        .concat(payload
+          .reduce(function(accumulator, current) {
+            return accumulator
+              .some(function(accumulated) {
+                return accumulated.id == current.id;
+              }) ? accumulator : accumulator.concat([current]);
+          }, []))
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
+    },
+    REPLACE_STORAGE_COURSES(state, payload) {
+      if(!Array.isArray(payload)) return;
+
+      state.storage.levels = (state.storage.levels || [])
+        .filter(function(level) {
+          return !payload
+            .some(function(item) {
+              return item.Level.id == level.id;
+            });
+        })
+        .concat(payload
+          .reduce(function(accumulator, current) {
+            return accumulator
+              .some(function(accumulated) {
+                return accumulated.id == current.Level.id;
+              }) ? accumulator : accumulator.concat([current.Level]);
+          }, []))
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
+      state.storage.programs = (state.storage.programs || [])
+        .filter(function(program) {
+          return !payload
+            .some(function(item) {
+              return item.Program.id == program.id;
+            });
+        })
+        .concat(payload
+          .reduce(function(accumulator, current) {
+            return accumulator
+              .some(function(accumulated) {
+                return accumulated.id == current.Program.id;
+              }) ? accumulator : accumulator.concat([current.Program]);
+          }, []))
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
+      state.storage.semesters = (state.storage.semesters || [])
+        .filter(function(semester) {
+          return !payload
+            .some(function(item) {
+              return item.Semester.id == semester.id;
+            });
+        })
+        .concat(payload
+          .reduce(function(accumulator, current) {
+            return accumulator
+              .some(function(accumulated) {
+                return accumulated.id == current.Semester.id;
+              }) ? accumulator : accumulator.concat([current.Semester]);
+          }, []))
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
+      state.storage.courses = (state.storage.courses || [])
+        .filter(function(course) {
+          return !payload
+            .some(function(item) {
+              return item.id == course.id;
+            });
+        })
+        .concat(payload
+          .reduce(function(accumulator, current) {
+            return accumulator
+              .some(function(accumulated) {
+                return accumulated.id == current.id;
+              }) ? accumulator : accumulator.concat([current]);
+          }, [])
+          .filter(function(item) {
+            return (state.storage.courses || [])
+              .some(function(course) {
+                return course.id == item.id;
+              })
+          }))
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
+    },
+    REPLACE_STORAGE_LEVELS(state, payload) {
+      if(!Array.isArray(payload)) return;
+      
+      state.storage.levels = (state.storage.levels || [])
+        .filter(function(level) {
+          return !payload
+            .some(function(item) {
+              return item.id == level.id;
+            });
+        })
+        .concat(payload
+          .reduce(function(accumulator, current) {
+            return accumulator
+              .some(function(accumulated) {
+                return accumulated.id == current.id;
+              }) ? accumulator : accumulator.concat([current]);
+          }, [])
+          .filter(function(item) {
+            return (state.storage.levels || [])
+              .some(function(level) {
+                return level.id == item.id;
+              })
+          }))
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
+    },
+    REPLACE_STORAGE_PROGRAMS(state, payload) {
+      if(!Array.isArray(payload)) return;
+      
+      state.storage.programs = (state.storage.programs || [])
+        .filter(function(program) {
+          return !payload
+            .some(function(item) {
+              return item.id == program.id;
+            });
+        })
+        .concat(payload
+          .reduce(function(accumulator, current) {
+            return accumulator
+              .some(function(accumulated) {
+                return accumulated.id == current.id;
+              }) ? accumulator : accumulator.concat([current]);
+          }, [])
+          .filter(function(item) {
+            return (state.storage.programs || [])
+              .some(function(program) {
+                return program.id == item.id;
+              })
+          }))
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
+    },
+    REPLACE_STORAGE_PROJECTS(state, payload) {
+      if(!Array.isArray(payload)) return;
+      
+      state.storage.roles = (state.storage.roles || [])
+        .filter(function(existingRole) {
+          return !payload
+            .some(function(item) {
+              return item.User.Roles
+                .some(function(role) {
+                  return role.id == existingRole.id;
+                });
+            });
+        })
+        .concat(payload
+          .reduce(function(accumulator, current) {
+            return accumulator.concat(current.User.Roles
+              .filter(function(role) {
+                return !accumulator
+                  .some(function(accumulated) {
+                    return accumulated.id == role.id;
+                  });
+              }));
+          }, []))
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
+      state.storage.userProfileTypes = (state.storage.userProfileTypes || [])
+        .filter(function(userProfileType) {
+          return !payload
+            .some(function(item) {
+              return item.User.UserProfile.UserProfileType.id == userProfileType.id;
+            });
+        })
+        .concat(payload
+          .reduce(function(accumulator, current) {
+            return accumulator
+              .some(function(accumulated) {
+                return accumulated.id == current.User.UserProfile.UserProfileType.id;
+              }) ? accumulator : accumulator.concat([current.User.UserProfile.UserProfileType]);
+          }, []))
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
+      state.storage.users = (state.storage.users || [])
+        .filter(function(user) {
+          return !payload
+            .some(function(item) {
+              return item.User.id == user.id;
+            });
+        })
+        .concat(payload
+          .reduce(function(accumulator, current) {
+            return accumulator
+              .some(function(accumulated) {
+                return accumulated.id == current.User.id;
+              }) ? accumulator : accumulator.concat([current.User]);
+          }, []))
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
+      state.storage.projects = (state.storage.projects || [])
+        .filter(function(project) {
+          return !payload
+            .some(function(item) {
+              return item.id == project.id;
+            });
+        })
+        .concat(payload
+          .reduce(function(accumulator, current) {
+            return accumulator
+              .some(function(accumulated) {
+                return accumulated.id == current.id;
+              }) ? accumulator : accumulator.concat([current]);
+          }, [])
+          .filter(function(item) {
+            return (state.storage.projects || [])
+              .some(function(project) {
+                return project.id == item.id;
+              })
+          }))
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
+    },
+    REPLACE_STORAGE_QUESTION_BANKS(state, payload) {
+      if(!Array.isArray(payload)) return;
+      
+      state.storage.levels = (state.storage.levels || [])
+        .filter(function(level) {
+          return !payload
+            .some(function(item) {
+              return item.Course.Level.id == level.id;
+            });
+        })
+        .concat(payload
+          .reduce(function(accumulator, current) {
+            return accumulator
+              .some(function(accumulated) {
+                return accumulated.id == current.Course.Level.id;
+              }) ? accumulator : accumulator.concat([current.Course.Level]);
+          }, []))
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
+      state.storage.programs = (state.storage.programs || [])
+        .filter(function(program) {
+          return !payload
+            .some(function(item) {
+              return item.Course.Program.id == program.id;
+            });
+        })
+        .concat(payload
+          .reduce(function(accumulator, current) {
+            return accumulator
+              .some(function(accumulated) {
+                return accumulated.id == current.Course.Program.id;
+              }) ? accumulator : accumulator.concat([current.Course.Program]);
+          }, []))
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
+      state.storage.semesters = (state.storage.semesters || [])
+        .filter(function(semester) {
+          return !payload
+            .some(function(item) {
+              return item.Course.Semester.id == semester.id;
+            });
+        })
+        .concat(payload
+          .reduce(function(accumulator, current) {
+            return accumulator
+              .some(function(accumulated) {
+                return accumulated.id == current.Course.Semester.id;
+              }) ? accumulator : accumulator.concat([current.Course.Semester]);
+          }, []))
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
+      state.storage.courses = (state.storage.courses || [])
+        .filter(function(course) {
+          return !payload
+            .some(function(item) {
+              return item.Course.id == course.id;
+            });
+        })
+        .concat(payload
+          .reduce(function(accumulator, current) {
+            return accumulator
+              .some(function(accumulated) {
+                return accumulated.id == current.Course.id;
+              }) ? accumulator : accumulator.concat([current.Course]);
+          }, []))
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
+      state.storage.questionBanks = (state.storage.questionBanks || [])
+        .filter(function(questionBank) {
+          return !payload
+            .some(function(item) {
+              return item.id == questionBank.id;
+            });
+        })
+        .concat(payload
+          .reduce(function(accumulator, current) {
+            return accumulator
+              .some(function(accumulated) {
+                return accumulated.id == current.id;
+              }) ? accumulator : accumulator.concat([current]);
+          }, [])
+          .filter(function(item) {
+            return (state.storage.questionBanks || [])
+              .some(function(questionBank) {
+                return questionBank.id == item.id;
+              })
+          }))
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
+    },
+    REPLACE_STORAGE_ROLES(state, payload) {
+      if(!Array.isArray(payload)) return;
+      
+      state.storage.roles = (state.storage.roles || [])
+        .filter(function(role) {
+          return !payload
+            .some(function(item) {
+              return item.id == role.id;
+            });
+        })
+        .concat(payload
+          .reduce(function(accumulator, current) {
+            return accumulator
+              .some(function(accumulated) {
+                return accumulated.id == current.id;
+              }) ? accumulator : accumulator.concat([current]);
+          }, [])
+          .filter(function(item) {
+            return (state.storage.roles || [])
+              .some(function(role) {
+                return role.id == item.id;
+              })
+          }))
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
+    },
+    REPLACE_STORAGE_SEMESTERS(state, payload) {
+      if(!Array.isArray(payload)) return;
+      
+      state.storage.semesters = (state.storage.semesters || [])
+        .filter(function(semester) {
+          return !payload
+            .some(function(item) {
+              return item.id == semester.id;
+            });
+        })
+        .concat(payload
+          .reduce(function(accumulator, current) {
+            return accumulator
+              .some(function(accumulated) {
+                return accumulated.id == current.id;
+              }) ? accumulator : accumulator.concat([current]);
+          }, [])
+          .filter(function(item) {
+            return (state.storage.semesters || [])
+              .some(function(semester) {
+                return semester.id == item.id;
+              })
+          }))
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
+    },
+    REPLACE_STORAGE_USERS(state, payload) {
+      if(!Array.isArray(payload)) return;
+      
+      state.storage.roles = (state.storage.roles || [])
+        .filter(function(existingRole) {
+          return !payload
+            .some(function(item) {
+              return item.Roles
+                .some(function(role) {
+                  return role.id == existingRole.id;
+                });
+            });
+        })
+        .concat(payload
+          .reduce(function(accumulator, current) {
+            return accumulator.concat(current.Roles
+              .filter(function(role) {
+                return !accumulator
+                  .some(function(accumulated) {
+                    return accumulated.id == role.id;
+                  });
+              }));
+          }, []))
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
+      state.storage.userProfileTypes = (state.storage.userProfileTypes || [])
+        .filter(function(userProfileType) {
+          return !payload
+            .some(function(item) {
+              return item.UserProfile.UserProfileType.id == userProfileType.id;
+            });
+        })
+        .concat(payload
+          .reduce(function(accumulator, current) {
+            return accumulator
+              .some(function(accumulated) {
+                return accumulated.id == current.UserProfile.UserProfileType.id;
+              }) ? accumulator : accumulator.concat([current.UserProfile.UserProfileType]);
+          }, []))
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
+      state.storage.users = (state.storage.users || [])
+        .filter(function(user) {
+          return !payload
+            .some(function(item) {
+              return item.id == user.id;
+            });
+        })
+        .concat(payload
+          .reduce(function(accumulator, current) {
+            return accumulator
+              .some(function(accumulated) {
+                return accumulated.id == current.id;
+              }) ? accumulator : accumulator.concat([current]);
+          }, [])
+          .filter(function(item) {
+            return (state.storage.users || [])
+              .some(function(user) {
+                return user.id == item.id;
+              })
+          }))
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
+    },
+    REPLACE_STORAGE_USER_PROFILE_TYPES(state, payload) {
+      if(!Array.isArray(payload)) return;
+      
+      state.storage.userProfileTypes = (state.storage.userProfileTypes || [])
+        .filter(function(userProfileType) {
+          return !payload
+            .some(function(item) {
+              return item.id == userProfileType.id;
+            });
+        })
+        .concat(payload
+          .reduce(function(accumulator, current) {
+            return accumulator
+              .some(function(accumulated) {
+                return accumulated.id == current.id;
+              }) ? accumulator : accumulator.concat([current]);
+          }, [])
+          .filter(function(item) {
+            return (state.storage.userProfileTypes || [])
+              .some(function(userProfileType) {
+                return userProfileType.id == item.id;
+              })
+          }))
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
+    },
     SET_APPLICATION_ERROR(state, payload) {
       if(typeof payload != 'boolean') return;
 
@@ -121,14 +1106,127 @@ export default createStore({
       state.application.mainHeaderHidden = payload;
     },
     SET_STORAGE_AUTHENTICATION_TOKEN(state, payload) {
-      if(payload && payload?.constructor?.name?.toLowerCase() != 'object') return;
-
       state.storage.authenticationToken = payload || null;
     },
     SET_STORAGE_AUTHENTICATION_USER(state, payload) {
-      if(payload && payload?.constructor?.name?.toLowerCase() != 'object') return;
-
       state.storage.authenticationUser = payload || null;
+    },
+    SET_STORAGE_COURSE_COUNT(state, payload) {
+      if(payload !== null && isNaN(parseInt(payload))) return;
+
+      state.storage.courseCount = payload === null ? null : parseInt(payload);
+    },
+    SET_STORAGE_COURSES(state, payload) {
+      if(!Array.isArray(payload)) {
+        state.storage.courses = null;
+        return;
+      }
+
+      state.storage.levels = (state.storage.levels || [])
+        .filter(function(level) {
+          return !payload
+            .some(function(item) {
+              return item.Level.id == level.id;
+            });
+        })
+        .concat(payload
+          .reduce(function(accumulator, current) {
+            return accumulator
+              .some(function(accumulated) {
+                return accumulated.id == current.Level.id;
+              }) ? accumulator : accumulator.concat([current.Level]);
+          }, []))
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
+      state.storage.programs = (state.storage.programs || [])
+        .filter(function(program) {
+          return !payload
+            .some(function(item) {
+              return item.Program.id == program.id;
+            });
+        })
+        .concat(payload
+          .reduce(function(accumulator, current) {
+            return accumulator
+              .some(function(accumulated) {
+                return accumulated.id == current.Program.id;
+              }) ? accumulator : accumulator.concat([current.Program]);
+          }, []))
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
+      state.storage.semesters = (state.storage.semesters || [])
+        .filter(function(semester) {
+          return !payload
+            .some(function(item) {
+              return item.Semester.id == semester.id;
+            });
+        })
+        .concat(payload
+          .reduce(function(accumulator, current) {
+            return accumulator
+              .some(function(accumulated) {
+                return accumulated.id == current.Semester.id;
+              }) ? accumulator : accumulator.concat([current.Semester]);
+          }, []))
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
+      state.storage.courses = payload
+        .reduce(function(accumulator, current) {
+          return accumulator
+            .some(function(accumulated) {
+              return accumulated.id == current.id;
+            }) ? accumulator : accumulator.concat([current]);
+        }, [])
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
+    },
+    SET_STORAGE_LEVEL_COUNT(state, payload) {
+      if(payload !== null && isNaN(parseInt(payload))) return;
+
+      state.storage.levelCount = payload === null ? null : parseInt(payload);
+    },
+    SET_STORAGE_LEVELS(state, payload) {
+      if(!Array.isArray(payload)) {
+        state.storage.levels = null;
+        return;
+      }
+
+      state.storage.levels = payload
+        .reduce(function(accumulator, current) {
+          return accumulator
+            .some(function(accumulated) {
+              return accumulated.id == current.id;
+            }) ? accumulator : accumulator.concat([current]);
+        }, [])
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
+    },
+    SET_STORAGE_PROGRAM_COUNT(state, payload) {
+      if(payload !== null && isNaN(parseInt(payload))) return;
+
+      state.storage.programCount = payload === null ? null : parseInt(payload);
+    },
+    SET_STORAGE_PROGRAMS(state, payload) {
+      if(!Array.isArray(payload)) {
+        state.storage.programs = null;
+        return;
+      }
+
+      state.storage.programs = payload
+        .reduce(function(accumulator, current) {
+          return accumulator
+            .some(function(accumulated) {
+              return accumulated.id == current.id;
+            }) ? accumulator : accumulator.concat([current]);
+        }, [])
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
     },
     SET_STORAGE_PROJECT_COUNT(state, payload) {
       if(payload !== null && isNaN(parseInt(payload))) return;
@@ -136,9 +1234,78 @@ export default createStore({
       state.storage.projectCount = payload === null ? null : parseInt(payload);
     },
     SET_STORAGE_PROJECTS(state, payload) {
-      if(!(payload === null || Array.isArray(payload))) return;
+      if(!Array.isArray(payload)) {
+        state.storage.projects = null;
+        return;
+      }
 
-      state.storage.projects = payload;
+      state.storage.roles = (state.storage.roles || [])
+        .filter(function(existingRole) {
+          return !payload
+            .some(function(item) {
+              return item.User.Roles
+                .some(function(role) {
+                  return role.id == existingRole.id;
+                });
+            });
+        })
+        .concat(payload
+          .reduce(function(accumulator, current) {
+            return accumulator.concat(current.User.Roles
+              .filter(function(role) {
+                return !accumulator
+                  .some(function(accumulated) {
+                    return accumulated.id == role.id;
+                  });
+              }));
+          }, []))
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
+      state.storage.userProfileTypes = (state.storage.userProfileTypes || [])
+        .filter(function(userProfileType) {
+          return !payload
+            .some(function(item) {
+              return item.User.UserProfile.UserProfileType.id == userProfileType.id;
+            });
+        })
+        .concat(payload
+          .reduce(function(accumulator, current) {
+            return accumulator
+              .some(function(accumulated) {
+                return accumulated.id == current.User.UserProfile.UserProfileType.id;
+              }) ? accumulator : accumulator.concat([current.User.UserProfile.UserProfileType]);
+          }, []))
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
+      state.storage.users = (state.storage.users || [])
+        .filter(function(user) {
+          return !payload
+            .some(function(item) {
+              return item.User.id == user.id;
+            });
+        })
+        .concat(payload
+          .reduce(function(accumulator, current) {
+            return accumulator
+              .some(function(accumulated) {
+                return accumulated.id == current.User.id;
+              }) ? accumulator : accumulator.concat([current.User]);
+          }, []))
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
+      state.storage.projects = payload
+        .reduce(function(accumulator, current) {
+          return accumulator
+            .some(function(accumulated) {
+              return accumulated.id == current.id;
+            }) ? accumulator : accumulator.concat([current]);
+        }, [])
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
     },
     SET_STORAGE_QUESTION_BANK_COUNT(state, payload) {
       if(payload !== null && isNaN(parseInt(payload))) return;
@@ -146,25 +1313,218 @@ export default createStore({
       state.storage.questionBankCount = payload === null ? null : parseInt(payload);
     },
     SET_STORAGE_QUESTION_BANKS(state, payload) {
-      if(!(payload === null || Array.isArray(payload))) return;
+      if(!Array.isArray(payload)) {
+        state.storage.questionBanks = null;
+        return;
+      }
 
-      state.storage.questionBanks = payload;
+      state.storage.levels = (state.storage.levels || [])
+        .filter(function(level) {
+          return !payload
+            .some(function(item) {
+              return item.Course.Level.id == level.id;
+            });
+        })
+        .concat(payload
+          .reduce(function(accumulator, current) {
+            return accumulator
+              .some(function(accumulated) {
+                return accumulated.id == current.Course.Level.id;
+              }) ? accumulator : accumulator.concat([current.Course.Level]);
+          }, []))
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
+      state.storage.programs = (state.storage.programs || [])
+        .filter(function(program) {
+          return !payload
+            .some(function(item) {
+              return item.Course.Program.id == program.id;
+            });
+        })
+        .concat(payload
+          .reduce(function(accumulator, current) {
+            return accumulator
+              .some(function(accumulated) {
+                return accumulated.id == current.Course.Program.id;
+              }) ? accumulator : accumulator.concat([current.Course.Program]);
+          }, []))
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
+      state.storage.semesters = (state.storage.semesters || [])
+        .filter(function(semester) {
+          return !payload
+            .some(function(item) {
+              return item.Course.Semester.id == semester.id;
+            });
+        })
+        .concat(payload
+          .reduce(function(accumulator, current) {
+            return accumulator
+              .some(function(accumulated) {
+                return accumulated.id == current.Course.Semester.id;
+              }) ? accumulator : accumulator.concat([current.Course.Semester]);
+          }, []))
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
+      state.storage.courses = (state.storage.courses || [])
+        .filter(function(course) {
+          return !payload
+            .some(function(item) {
+              return item.Course.id == course.id;
+            });
+        })
+        .concat(payload
+          .reduce(function(accumulator, current) {
+            return accumulator
+              .some(function(accumulated) {
+                return accumulated.id == current.Course.id;
+              }) ? accumulator : accumulator.concat([current.Course]);
+          }, []))
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
+      state.storage.questionBanks = payload
+        .reduce(function(accumulator, current) {
+          return accumulator
+            .some(function(accumulated) {
+              return accumulated.id == current.id;
+            }) ? accumulator : accumulator.concat([current]);
+        }, [])
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
     },
-    SET_STORAGE_ROLES(state, payload) {
-      if(!(payload === null || Array.isArray(payload))) return;
-
-      state.storage.roles = payload;
-    },
-    SET_STORAGE_STUDENT_COUNT(state, payload) {
+    SET_STORAGE_ROLE_COUNT(state, payload) {
       if(payload !== null && isNaN(parseInt(payload))) return;
 
-      state.storage.studentCount = payload === null ? null : parseInt(payload);
+      state.storage.roleCount = payload === null ? null : parseInt(payload);
     },
-    SET_STORAGE_STUDENTS(state, payload) {
-      if(!(payload === null || Array.isArray(payload))) return;
+    SET_STORAGE_ROLES(state, payload) {
+      if(!Array.isArray(payload)) {
+        state.storage.roles = null;
+        return;
+      }
 
-      state.storage.students = payload;
-    }
+      state.storage.roles = payload
+        .reduce(function(accumulator, current) {
+          return accumulator
+            .some(function(accumulated) {
+              return accumulated.id == current.id;
+            }) ? accumulator : accumulator.concat([current]);
+        }, [])
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
+    },
+    SET_STORAGE_SEMESTER_COUNT(state, payload) {
+      if(payload !== null && isNaN(parseInt(payload))) return;
+
+      state.storage.semesterCount = payload === null ? null : parseInt(payload);
+    },
+    SET_STORAGE_SEMESTERS(state, payload) {
+      if(!Array.isArray(payload)) {
+        state.storage.semesters = null;
+        return;
+      }
+
+      state.storage.semesters = payload
+        .reduce(function(accumulator, current) {
+          return accumulator
+            .some(function(accumulated) {
+              return accumulated.id == current.id;
+            }) ? accumulator : accumulator.concat([current]);
+        }, [])
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
+    },
+    SET_STORAGE_USER_COUNT(state, payload) {
+      if(payload !== null && isNaN(parseInt(payload))) return;
+
+      state.storage.userCount = payload === null ? null : parseInt(payload);
+    },
+    SET_STORAGE_USERS(state, payload) {
+      if(!Array.isArray(payload)) {
+        state.storage.users = null;
+        return;
+      }
+
+      state.storage.roles = (state.storage.roles || [])
+        .filter(function(existingRole) {
+          return !payload
+            .some(function(item) {
+              return item.Roles
+                .some(function(role) {
+                  return role.id == existingRole.id;
+                });
+            });
+        })
+        .concat(payload
+          .reduce(function(accumulator, current) {
+            return accumulator.concat(current.Roles
+              .filter(function(role) {
+                return !accumulator
+                  .some(function(accumulated) {
+                    return accumulated.id == role.id;
+                  });
+              }));
+          }, []))
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
+      state.storage.userProfileTypes = (state.storage.userProfileTypes || [])
+        .filter(function(userProfileType) {
+          return !payload
+            .some(function(item) {
+              return item.UserProfile.UserProfileType.id == userProfileType.id;
+            });
+        })
+        .concat(payload
+          .reduce(function(accumulator, current) {
+            return accumulator
+              .some(function(accumulated) {
+                return accumulated.id == current.UserProfile.UserProfileType.id;
+              }) ? accumulator : accumulator.concat([current.UserProfile.UserProfileType]);
+          }, []))
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
+      state.storage.users = payload
+        .reduce(function(accumulator, current) {
+          return accumulator
+            .some(function(accumulated) {
+              return accumulated.id == current.id;
+            }) ? accumulator : accumulator.concat([current]);
+        }, [])
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
+    },
+    SET_STORAGE_USER_PROFILE_TYPE_COUNT(state, payload) {
+      if(payload !== null && isNaN(parseInt(payload))) return;
+
+      state.storage.userProfileTypeCount = payload === null ? null : parseInt(payload);
+    },
+    SET_STORAGE_USER_PROFILE_TYPES(state, payload) {
+      if(!Array.isArray(payload)) {
+        state.storage.userProfileTypes = null;
+        return;
+      }
+
+      state.storage.userProfileTypes = payload
+        .reduce(function(accumulator, current) {
+          return accumulator
+            .some(function(accumulated) {
+              return accumulated.id == current.id;
+            }) ? accumulator : accumulator.concat([current]);
+        }, [])
+        .sort(function(a, b) {
+          return a.id - b.id;
+        });
+    },
   },
   actions: {
     async authenticationRefresh(context) {
@@ -179,10 +1539,6 @@ export default createStore({
           access: response.data.payload.token.access,
           refresh: context.state.storage.authenticationToken.refresh
         });
-        emitter.emit('application:toast', {
-          title: response.data.title,
-          message: response.data.message
-        });
         return true;
       } catch(error) {
         return false;
@@ -190,7 +1546,9 @@ export default createStore({
     },
     async authenticationSignIn(context, payload) {
       try {
-        const response = await axios.post('/api/authentication/sign-in', payload);
+        const response = await axios.post('/api/authentication/sign-in', payload, {
+          headers: {'Content-Type': 'multipart/form-data'}
+        });
 
         context.commit('SET_STORAGE_AUTHENTICATION_TOKEN', response.data.payload.token);
         context.commit('SET_STORAGE_AUTHENTICATION_USER', response.data.payload.user);
@@ -198,7 +1556,6 @@ export default createStore({
           title: response.data.title,
           message: response.data.message
         });
-        await context.dispatch('requestRoles');
         return true;
       } catch(error) {
         return false;
@@ -219,6 +1576,21 @@ export default createStore({
         return false;
       }
     },
+    async authenticationUpdateUser(context, payload) {
+      try {
+        const response = await axios.patch('/api/authentication/update-password', payload, {
+          headers: {'Content-Type': 'multipart/form-data'}
+        });
+
+        emitter.emit('application:toast', {
+          title: response.data.title,
+          message: response.data.message
+        });
+        return true;
+      } catch(error) {
+        return false;
+      }
+    },
     async authenticationWhoami(context) {
       try {
         if(!context.getters.authenticationAccessTokenAvailable) return false;
@@ -226,59 +1598,56 @@ export default createStore({
         const response = await axios.get('/api/authentication/whoami');
 
         context.commit('SET_STORAGE_AUTHENTICATION_USER', response.data.payload.user);
-        await context.dispatch('requestRoles');
         return true;
       } catch(error) {
         return false;
       }
     },
-    async createStudent(context, payload) {
+    async createResource(context, payload) {
       try {
         if(!context.getters.authenticationAccessTokenAvailable) return false;
 
-        if(!context.getters.authenticationUserHasRoles('super_administrator')) return false;
-
-        const response = await axios.post('/api/students/create', payload);
-
-        context.dispatch('requestStudentCount');
-        context.commit('SET_STORAGE_STUDENTS', (context.state.storage.students || []).concat([response.data.payload.student]));
-        $G.socketClient.emit('api:students:created', response.data.payload.student);
-        emitter.emit('application:toast', {
-          title: response.data.title,
-          message: response.data.message
-        });
-        return true;
-      } catch(error) {
-        return false;
-      }
-    },
-    async destroyStudent(context, payload) {
-      try {
-        const id = isNaN(parseInt(payload)) ? null : parseInt(payload);
-
-        if(id === null) return false;
-
-        if(!context.getters.authenticationAccessTokenAvailable) return false;
-
-        if(!context.getters.authenticationUserHasRoles('super_administrator')) return false;
-
-        const response = await axios.delete(`/api/students/destroy/${id}`);
-        const check = (context.state.storage.students || [])
-          .some(function(existingStudent) {
-            return existingStudent.id == response.data.payload.student.id
+        const superAdministratorRoleCheck = context.state.storage.authenticationUser?.Roles
+          .some(function(role) {
+            return role.name == 'super_administrator';
           });
 
-        if(check) {
-          context.commit('SET_STORAGE_STUDENTS', (context.state.storage.students || [])
-            .map(function(existingStudent) {
-              if(existingStudent.id == response.data.payload.student.id) return response.data.payload.student;
+        if(!superAdministratorRoleCheck) return false;
 
-              return existingStudent;
-            }));
+        const body = payload?.body ?? null;
+        const type = payload?.type ?? '';
+        const eventData = getApiEventData(type);
+
+        if(!eventData) return false;
+
+        if(type == 'users') {
+          await Promise.all([
+            context.dispatch('requestAllResource', {type: 'roles'}),
+            context.dispatch('requestAllResource', {type: 'user-profile-types'})
+          ]);
+
+          body.append('roleIds[]', JSON.stringify(context.state.storage.roles
+            .reduce(function(accumulator, current) {
+              return current.name == 'student' ? current.id : accumulator;
+            }, null)));
+          body.append('userProfileTypeId', context.state.storage.userProfileTypes
+            .reduce(function(accumulator, current) {
+              return current.name == 'student' ? current.id : accumulator;
+            }, null));
         }
-        else context.commit('SET_STORAGE_STUDENTS', (context.state.storage.students || []).concat([response.data.payload.student]));
-        
-        $G.socketClient.emit('api:students:destroyed', response.data.payload.student);
+
+        const response = await axios.post(`${eventData.url}/create`, body, {
+          headers: {'Content-Type': 'multipart/form-data'},
+          params: {include: JSON.stringify(eventData.include)}
+        });
+        const resource = response.data.payload[eventData.singular];
+
+        context.commit(`ADD_STORAGE_${eventData.mutation}`, [resource]);
+        await context.dispatch('requestResourceCount', {type});
+        $G.socketClient.emit('app:resource:create', {
+          resource,
+          type
+        });
         emitter.emit('application:toast', {
           title: response.data.title,
           message: response.data.message
@@ -288,287 +1657,231 @@ export default createStore({
         return false;
       }
     },
-    async obliterateStudent(context, payload) {
-      try {
-        const id = isNaN(parseInt(payload)) ? null : parseInt(payload);
-
-        if(id === null) return false;
-
-        if(!context.getters.authenticationAccessTokenAvailable) return false;
-
-        if(!context.getters.authenticationUserHasRoles('super_administrator')) return false;
-
-        const response = await axios.delete(`/api/students/obliterate/${id}`);
-
-        context.dispatch('requestStudentCount');
-        context.commit('SET_STORAGE_STUDENTS', (context.state.storage.students || [])
-          .filter(function(existingStudent) {
-            return existingStudent.id != response.data.payload.student.id;
-          }));
-        $G.socketClient.emit('api:students:obliterated', response.data.payload.student);
-        emitter.emit('application:toast', {
-          title: response.data.title,
-          message: response.data.message
-        });
-        return true;
-      } catch(error) {
-        return false;
-      }
-    },
-    async requestProjectCount(context) {
+    async destroyResource(context, payload) {
       try {
         if(!context.getters.authenticationAccessTokenAvailable) return false;
 
-        const response = await axios.get('/api/projects/count');
-
-        context.commit('SET_STORAGE_PROJECT_COUNT', response.data.payload.projectCount);
-        $G.socketClient.emit('api:projects:counted', response.data.payload.projectCount);
-        return true;
-      } catch(error) {
-        return false;
-      }
-    },
-    async requestProjects(context) {
-      try {
-        if(!context.getters.authenticationAccessTokenAvailable) return false;
-
-        if(context.state.storage.projectCount !== null && context.state.storage.projects !== null && context.state.storage.projectCount == (context.state.storage.projects?.length || 0)) return true;
-
-        if(context.state.storage.authenticationUser?.UserProfile?.UserProfileType?.name != 'super_administrator') {
-          const response = await axios.get('/api/projects', {
-            params: {
-              pagination: {
-                page: 1,
-                size: 20
-              },
-              where: {
-                id: {
-                  $notIn: (context.state.storage.projects || [])
-                    .map(function(project) {
-                      return project.id
-                    })
-                },
-                deletedAt: null
-              }
-            }
+        const superAdministratorRoleCheck = context.state.storage.authenticationUser?.Roles
+          .some(function(role) {
+            return role.name == 'super_administrator';
           });
 
-          context.commit('SET_STORAGE_PROJECTS', (context.state.storage.projects || []).concat(response.data.payload.projects));
-          return true;
-        }
+        if(!superAdministratorRoleCheck) return false;
 
-        context.dispatch('requestProjectCount');
-        
-        const response = await axios.get('/api/projects', {
+        const type = payload?.type ?? '';
+        const id = payload?.id ?? null;
+        const eventData = getApiEventData(type);
+
+        if(!eventData || id === null) return false;
+
+        const response = await axios.delete(`${eventData.url}/destroy/${id}`, {
+          params: {include: JSON.stringify(eventData.include)}
+        });
+        const resource = response.data.payload[eventData.singular];
+
+        context.commit(`REPLACE_STORAGE_${eventData.mutation}`, [resource]);
+        await context.dispatch('requestResourceCount', {type});
+        $G.socketClient.emit('app:resource:update', {
+          resource,
+          type
+        });
+        emitter.emit('application:toast', {
+          title: response.data.title,
+          message: response.data.message
+        });
+        return true;
+      } catch(error) {
+        return false;
+      }
+    },
+    async refreshAllResource(context, payload) {
+      try {
+        if(!context.getters.authenticationAccessTokenAvailable) return false;
+
+        const type = payload?.type ?? '';
+        const eventData = getApiEventData(type);
+
+        if(!eventData) return false;
+
+        if(context.state.storage.authenticationUser?.UserProfile?.UserProfileType?.name == 'student') eventData.where.deletedAt = null;
+
+        const response = await axios.get(`${eventData.url}`, {
           params: {
-            pagination: {
-              page: 1,
-              size: 20
-            },
-            where: {
-              id: {
-                $notIn: (context.state.storage.projects || [])
-                  .map(function(project) {
-                    return project.id
-                  })
-              }
-            }
+            include: JSON.stringify(eventData.include),
+            where: JSON.stringify(eventData.where)
           }
         });
+        const resources = response.data.payload[eventData.plural];
 
-        context.commit('SET_STORAGE_PROJECTS', (context.state.storage.projects || []).concat(response.data.payload.projects));
+        context.commit(`SET_STORAGE_${eventData.mutation}`, resources);
+        await context.dispatch('requestResourceCount', {type});
         return true;
       } catch(error) {
         return false;
       }
     },
-    async requestQuestionBankCount(context) {
+    async refreshResource(context, payload) {
       try {
         if(!context.getters.authenticationAccessTokenAvailable) return false;
 
-        const response = await axios.get('/api/question-banks/count');
+        const type = payload?.type ?? '';
+        const eventData = getApiEventData(type);
 
-        context.commit('SET_STORAGE_QUESTION_BANK_COUNT', response.data.payload.questionBankCount);
-        $G.socketClient.emit('api:question-banks:counted', response.data.payload.questionBankCount);
-        return true;
-      } catch(error) {
-        return false;
-      }
-    },
-    async requestQuestionBanks(context) {
-      try {
-        if(!context.getters.authenticationAccessTokenAvailable) return false;
+        if(!eventData) return false;
 
-        if(context.state.storage.questionBankCount !== null && context.state.storage.questionBanks !== null && context.state.storage.questionBankCount == (context.state.storage.questionBanks?.length || 0)) return true;
-
-        if(context.state.storage.authenticationUser?.UserProfile?.UserProfileType?.name != 'super_administrator') {
-          const response = await axios.get('/api/question-banks', {
-            params: {
-              pagination: {
-                page: 1,
-                size: 20
-              },
-              where: {
-                id: {
-                  $notIn: (context.state.storage.questionBanks || [])
-                    .map(function(questionBank) {
-                      return questionBank.id
-                    })
-                },
-                deletedAt: null
-              }
-            }
-          });
-
-          context.commit('SET_STORAGE_QUESTION_BANKS', (context.state.storage.questionBanks || []).concat(response.data.payload.questionBanks));
-          return true;
+        eventData.where.id = {
+          $in: (context.state.storage[eventData.plural] || [])
+            .map(function(item) {
+              return item.id;
+            })
         }
 
-        context.dispatch('requestQuestionBankCount');
+        if(context.state.storage.authenticationUser?.UserProfile?.UserProfileType?.name == 'student') eventData.where.deletedAt = null;
 
-        const response = await axios.get('/api/question-banks', {
+        const response = await axios.get(`${eventData.url}`, {
           params: {
-            pagination: {
-              page: 1,
-              size: 20
-            },
-            where: {
-              id: {
-                $notIn: (context.state.storage.questionBanks || [])
-                  .map(function(questionBank) {
-                    return questionBank.id
-                  })
-              }
-            }
+            include: JSON.stringify(eventData.include),
+            where: JSON.stringify(eventData.where)
           }
         });
+        const resources = response.data.payload[eventData.plural];
 
-        context.commit('SET_STORAGE_QUESTION_BANKS', (context.state.storage.questionBanks || []).concat(response.data.payload.questionBanks));
+        context.commit(`SET_STORAGE_${eventData.mutation}`, resources);
+        await context.dispatch('requestResourceCount', {type});
         return true;
       } catch(error) {
         return false;
       }
     },
-    async requestRoles(context) {
-      try {
-        const response = await axios.get('/api/roles');
-
-        context.commit('SET_STORAGE_ROLES', response.data.payload.roles);
-        return true;
-      } catch(error) {
-        return false;
-      }
-    },
-    async requestStudentCount(context) {
+    async requestAllResource(context, payload) {
       try {
         if(!context.getters.authenticationAccessTokenAvailable) return false;
 
-        const response = await axios.get('/api/students/count');
+        const type = payload?.type ?? '';
+        const eventData = getApiEventData(type);
 
-        context.commit('SET_STORAGE_STUDENT_COUNT', response.data.payload.studentCount);
-        $G.socketClient.emit('api:students:counted', response.data.payload.studentCount);
-        return true;
-      } catch(error) {
-        return false;
-      }
-    },
-    async requestStudents(context) {
-      try {
-        if(!context.getters.authenticationAccessTokenAvailable) return false;
+        if(!eventData) return false;
 
-        if(!context.getters.authenticationUserHasRoles('super_administrator')) return false;
+        if(context.state.storage[eventData.plural] !== null && context.state.storage[eventData.count] !== null && context.state.storage[eventData.plural].lenght >= context.state.storage[eventData.count]) return true;
 
-        if(context.state.storage.studentCount !== null && context.state.storage.students !== null && context.state.storage.studentCount == context.state.storage.students.length) return true;
+        eventData.where.id = {
+          $notIn: (context.state.storage[eventData.plural] || [])
+            .map(function(item) {
+              return item.id;
+            })
+        };
 
-        context.dispatch('requestStudentCount');
+        if(context.state.storage.authenticationUser?.UserProfile?.UserProfileType?.name == 'student') eventData.where.deletedAt = null;
 
-        const response = await axios.get('/api/students', {
+        const response = await axios.get(`${eventData.url}`, {
           params: {
-            pagination: {
-              page: 1,
-              size: 20
-            },
-            where: {
-              id: {
-                $notIn: (context.state.storage.students || [])
-                  .map(function(student) {
-                    return student.id
-                  })
-              }
-            }
+            include: JSON.stringify(eventData.include),
+            where: JSON.stringify(eventData.where)
           }
         });
+        const resources = response.data.payload[eventData.plural];
 
-        context.commit('SET_STORAGE_STUDENTS', (context.state.storage.students || []).concat(response.data.payload.students));
+        context.commit(`ADD_STORAGE_${eventData.mutation}`, resources);
+        await context.dispatch('requestResourceCount', {type});
         return true;
       } catch(error) {
         return false;
       }
     },
-    async restoreStudent(context, payload) {
+    async requestResource(context, payload) {
       try {
-        const id = isNaN(parseInt(payload)) ? null : parseInt(payload);
-
-        if(id === null) return false;
-
         if(!context.getters.authenticationAccessTokenAvailable) return false;
 
-        if(!context.getters.authenticationUserHasRoles('super_administrator')) return false;
+        const type = payload?.type ?? '';
+        const eventData = getApiEventData(type);
 
-        const response = await axios.post(`/api/students/restore/${id}`);
-        const check = (context.state.storage.students || [])
-          .some(function(existingStudent) {
-            return existingStudent.id == response.data.payload.student.id
-          });
+        if(!eventData) return false;
 
-        if(check) {
-          context.commit('SET_STORAGE_STUDENTS', (context.state.storage.students || [])
-            .map(function(existingStudent) {
-              if(existingStudent.id == response.data.payload.student.id) return response.data.payload.student;
+        if(context.state.storage[eventData.plural] !== null && context.state.storage[eventData.count] !== null && context.state.storage[eventData.plural].lenght >= context.state.storage[eventData.count]) return true;
 
-              return existingStudent;
-            }));
-        }
-        else context.commit('SET_STORAGE_STUDENTS', (context.state.storage.students || []).concat([response.data.payload.student]));
+        const paginationParam = {
+          page: 1,
+          size: context.getters.resourcePageSize
+        };
         
-        $G.socketClient.emit('api:students:restored', response.data.payload.student);
-        emitter.emit('application:toast', {
-          title: response.data.title,
-          message: response.data.message
+        eventData.where.id = {
+          $notIn: (context.state.storage[eventData.plural] || [])
+            .map(function(item) {
+              return item.id;
+            })
+        };
+
+        if(context.state.storage.authenticationUser?.UserProfile?.UserProfileType?.name == 'student') eventData.where.deletedAt = null;
+
+        const response = await axios.get(`${eventData.url}`, {
+          params: {
+            include: JSON.stringify(eventData.include),
+            pagination: JSON.stringify(paginationParam),
+            where: JSON.stringify(eventData.where)
+          }
         });
+        const resources = response.data.payload[eventData.plural];
+
+        context.commit(`ADD_STORAGE_${eventData.mutation}`, resources);
+        await context.dispatch('requestResourceCount', {type});
         return true;
       } catch(error) {
         return false;
       }
     },
-    async updateStudent(context, payload) {
+    async requestResourceCount(context, payload) {
       try {
-        const id = isNaN(parseInt(payload?.id)) ? null : parseInt(payload.id);
-        const data = payload?.data || null;
-
-        if(id === null || data === null) return false;
-
         if(!context.getters.authenticationAccessTokenAvailable) return false;
 
-        if(!context.getters.authenticationUserHasRoles('super_administrator')) return false;
+        const type = payload?.type ?? '';
+        const eventData = getApiEventData(type);
 
-        const response = await axios.patch(`/api/students/update/${id}`, data);
-        const check = (context.state.storage.students || [])
-          .some(function(existingStudent) {
-            return existingStudent.id == response.data.payload.student.id
+        if(!eventData) return false;
+
+        if(context.state.storage.authenticationUser?.UserProfile?.UserProfileType?.name == 'student') eventData.where.deletedAt = null;
+
+        const response = await axios.get(`${eventData.url}/count`, {
+          params: {
+            include: JSON.stringify(eventData.include),
+            where: JSON.stringify(eventData.where)
+          }
+        });
+        const count = response.data.payload.count;
+
+        context.commit(`SET_STORAGE_${eventData.countMutation}`, count);
+        return true;
+      } catch(error) {
+        return false;
+      }
+    },
+    async restoreResource(context, payload) {
+      try {
+        if(!context.getters.authenticationAccessTokenAvailable) return false;
+
+        const superAdministratorRoleCheck = context.state.storage.authenticationUser?.Roles
+          .some(function(role) {
+            return role.name == 'super_administrator';
           });
 
-        if(check) {
-          context.commit('SET_STORAGE_STUDENTS', (context.state.storage.students || [])
-            .map(function(existingStudent) {
-              if(existingStudent.id == response.data.payload.student.id) return response.data.payload.student;
+        if(!superAdministratorRoleCheck) return false;
 
-              return existingStudent;
-            }));
-        }
-        else context.commit('SET_STORAGE_STUDENTS', (context.state.storage.students || []).concat([response.data.payload.student]));
+        const id = payload.id ?? null;
+        const type = payload?.type ?? '';
+        const eventData = getApiEventData(type);
 
-        $G.socketClient.emit('api:students:updated', response.data.payload.student);
+        if(!eventData || id === null) return false;
+
+        const response = await axios.post(`${eventData.url}/restore/${id}`, null, {
+          params: {include: JSON.stringify(eventData.include)}
+        });
+        const resource = response.data.payload[eventData.singular];
+
+        context.commit(`REPLACE_STORAGE_${eventData.mutation}`, [resource]);
+        await context.dispatch('requestResourceCount', {type});
+        $G.socketClient.emit('app:resource:update', {
+          resource,
+          type
+        });
         emitter.emit('application:toast', {
           title: response.data.title,
           message: response.data.message
@@ -578,6 +1891,52 @@ export default createStore({
         return false;
       }
     },
+    async updateResource(context, payload) {
+      try {
+        if(!context.getters.authenticationAccessTokenAvailable) return false;
+
+        const superAdministratorRoleCheck = context.state.storage.authenticationUser?.Roles
+          .some(function(role) {
+            return role.name == 'super_administrator';
+          });
+
+        if(!superAdministratorRoleCheck) return false;
+
+        const body = payload?.body ?? null;
+        const id = payload?.id ?? null;
+        const type = payload?.type ?? '';
+        const eventData = getApiEventData(type);
+
+        if(!eventData || id === null) return false;
+
+        if(type == 'users') {
+          await Promise.all([
+            context.dispatch('requestAllResource', {type: 'roles'}),
+            context.dispatch('requestAllResource', {type: 'user-profile-types'})
+          ]);
+        }
+
+        const response = await axios.patch(`${eventData.url}/update/${id}`, body, {
+          headers: {'Content-Type': 'multipart/form-data'},
+          params: {include: JSON.stringify(eventData.include)}
+        });
+        const resource = response.data.payload[eventData.singular];
+
+        context.commit(`REPLACE_STORAGE_${eventData.mutation}`, [resource]);
+        await context.dispatch('requestResourceCount', {type});
+        $G.socketClient.emit('app:resource:update', {
+          resource,
+          type
+        });
+        emitter.emit('application:toast', {
+          title: response.data.title,
+          message: response.data.message
+        });
+        return true;
+      } catch(error) {
+        return false;
+      }
+    }
   },
   modules: {},
   strict: true

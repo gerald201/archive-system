@@ -11,31 +11,20 @@
           Sign In
         </h3>
 
-        <form
-          @input="
-            if(typeof formDataStates[$event.target.name]?.changed == 'boolean') formDataStates[$event.target.name].changed = true;
-
-            validateForm();
-          "
-          @submit.prevent="submitForm();"
-        >
-          <div class="mb-3">
-            <label
-              class="form-label"
-              for="sign-in-view-form-index-field"
-            >
-              Index
-            </label>
+        <form @submit.prevent="submitForm();">
+          <div class="form-floating mb-3">
             <input
               class="form-control"
               :class="{'is-invalid': formDataStates.index.errors.length}"
               :disabled="processing"
               id="sign-in-view-form-index-field"
-              name="index"
-              placeholder="040123456"
+              placeholder="_"
               type="text"
               v-model="formData.index"
             >
+            <label for="sign-in-view-form-index-field">
+              Index
+            </label>
             <div
               class="invalid-feedback"
               v-if="formDataStates.index.errors.length"
@@ -49,22 +38,19 @@
               </div>
             </div>
           </div>
-          <div class="mb-3">
-            <label
-              class="form-label"
-              for="sign-in-view-form-password-field"
-            >
-              Password
-            </label>
+          <div class="form-floating mb-3">
             <input
               class="form-control"
               :class="{'is-invalid': formDataStates.password.errors.length}"
               :disabled="processing"
               id="sign-in-view-form-password-field"
-              name="password"
+              placeholder="_"
               type="password"
               v-model="formData.password"
             >
+            <label for="sign-in-view-form-password-field">
+              Password
+            </label>
             <div
               class="invalid-feedback"
               v-if="formDataStates.password.errors.length"
@@ -106,7 +92,7 @@
 </template>
 
 <script>
-import { computed, reactive, ref } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useStore } from 'vuex';
 import apiConfiguration from '@/configuration/api';
@@ -118,21 +104,15 @@ export default {
     const $router = useRouter();
     const $store = useStore();
 
+    let resettingTimeout = null;
     const validationSchema = {
-      $$strict: 'remove',
-      index: {
-        type: 'string',
-        empty: false
-      },
-      password: {
-        type: 'string',
-        empty: false
-      }
+      index: 'string|empty:false',
+      password: 'string|empty:false'
     };
 
     const formData = reactive({
-      index: '',
-      password: ''
+      index: null,
+      password: null
     });
     const formDataStates = reactive({
       index: {
@@ -145,25 +125,36 @@ export default {
       }
     });
     const processing = ref(false);
+    const resetting = ref(false);
 
     const apiUrl = computed(function() {
       return apiConfiguration.url;
     });
 
     function resetForm(options) {
+      if(resettingTimeout) {
+        clearTimeout(resettingTimeout);
+        resettingTimeout = null;
+      }
+
+      resetting.value = true;
       options = options?.constructor?.name?.toLowerCase() == 'object' ? options : (Array.isArray(options) ? {include: options} : (typeof options == 'string' ? {include: [options]} : {}));
       options.exclude = (Array.isArray(options?.exclude) ? options.exclude : (typeof options?.exclude == 'string' ? [options.exclude] : []));
-      options.include = (Array.isArray(options?.include) ? options.include : (typeof options?.include == 'string' ? [options.include] : Object.keys(formData)));
+      options.include = (Array.isArray(options?.include) ? options.include : (typeof options?.include == 'string' ? [options.include] : Object.keys(formDataStates)));
 
       options.include
         .filter(function(field) {
           return Object.keys(formData).includes(field) && !options.exclude.includes(field);
         })
         .forEach(function(field) {
-          formData[field] = '';
+          formData[field] = null;
           formDataStates[field].changed = false;
           formDataStates[field].errors = [];
         });
+      
+      resettingTimeout = setTimeout(function() {
+        resetting.value = false;
+      }, 100);
     }
 
     async function submitForm() {
@@ -176,7 +167,13 @@ export default {
         return;
       }
 
-      const signedIn = await $store.dispatch('authenticationSignIn', formData);
+      const form = new FormData();
+
+      for(const key in formData) {
+        form.append(key, formData[key]);
+      }
+
+      const signedIn = await $store.dispatch('authenticationSignIn', form);
 
       if(signedIn) {
         resetForm();
@@ -212,11 +209,26 @@ export default {
       return false;
     }
 
+    watch(function() {
+      return JSON.parse(JSON.stringify(formData));
+    }, function(value, oldValue) {
+      if(resetting.value) return;
+
+      for(const field in formDataStates) {
+        if(!value[field]) formData[field] = null;
+        
+        if(!formDataStates[field].changed) formDataStates[field].changed = value[field] != oldValue[field];
+      }
+
+      validateForm();
+    }, {deep: true});
+
     return {
       apiUrl,
       formData,
       formDataStates,
       processing,
+      resetting,
       submitForm,
       validateForm
     };

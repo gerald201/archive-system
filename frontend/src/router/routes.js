@@ -2,6 +2,24 @@ import HomeView from '@/views/home';
 
 export default [
   {
+    name: 'Courses',
+    path: '/courses',
+    component() {
+      return import('@/views/courses');
+    },
+    meta: {
+      guards: {requireStaffUserProfileType: true}
+    }
+  },
+  {
+    name: 'Home',
+    path: '/',
+    component: HomeView,
+    meta: {
+      checks: {disableMainAside: true}
+    }
+  },
+  {
     name: 'Dashboard',
     path: '/dashboard',
     component() {
@@ -17,6 +35,16 @@ export default [
     component: HomeView,
     meta: {
       checks: {disableMainAside: true}
+    }
+  },
+  {
+    name: 'Programs',
+    path: '/programs',
+    component() {
+      return import('@/views/programs');
+    },
+    meta: {
+      guards: {requireStaffUserProfileType: true}
     }
   },
   {
@@ -61,6 +89,16 @@ export default [
     },
     meta: {
       guards: {requireStaffUserProfileType: true}
+    }
+  },
+  {
+    name: 'MyProfile',
+    path: '/my-profile',
+    component() {
+      return import('@/views/my-profile');
+    },
+    meta: {
+      guards: {requireAuthentication: true}
     }
   },
 ];

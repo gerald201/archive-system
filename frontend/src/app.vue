@@ -57,6 +57,16 @@ export default {
 </style>
 
 <style lang="scss">
+.g-transition-enter-active,
+.g-transition-leave-active {
+  transition-property: opacity, transform !important;
+}
+.g-transition-enter-from,
+.g-transition-leave-to {
+  opacity: 0 !important;
+  transform: scale(0.5) !important;
+}
+
 .g-transition-application-enter-active,
 .g-transition-application-leave-active {
   transition-property: opacity, transform !important;
@@ -70,24 +80,50 @@ export default {
   transform: scale(0.9) !important;
 }
 
-.g-transform-application-main-aside-enter-active,
-.g-transform-application-main-aside-leave-active {
+.g-transition-application-main-aside-enter-active,
+.g-transition-application-main-aside-leave-active {
   transition-property: opacity, transform !important;
 }
-.g-transform-application-main-aside-enter-from,
-.g-transform-application-main-aside-leave-to {
+.g-transition-application-main-aside-enter-from,
+.g-transition-application-main-aside-leave-to {
   opacity: 0 !important;
   transform: translateX(-16rem) !important;
 }
 
-.g-transform-application-main-header-enter-active,
-.g-transform-application-main-header-leave-active {
+.g-transition-application-main-header-enter-active,
+.g-transition-application-main-header-leave-active {
   transition-property: opacity, transform !important;
 }
-.g-transform-application-main-header-enter-from,
-.g-transform-application-main-header-leave-to {
+.g-transition-application-main-header-enter-from,
+.g-transition-application-main-header-leave-to {
   opacity: 0 !important;
   transform: translateY(-4rem) !important;
+}
+
+.g-transition-application-main-shadow-enter-active,
+.g-transition-application-main-shadow-leave-active {
+  transition-property: opacity !important;
+}
+.g-transition-application-main-shadow-enter-from,
+.g-transition-application-main-shadow-leave-to {
+  opacity: 0 !important;
+}
+
+.g-transition-group-enter-active,
+.g-transition-group-leave-active {
+  transform-origin: center !important;
+  transition-property: opacity, transform !important;
+}
+.g-transition-group-enter-from,
+.g-transition-group-leave-to {
+  opacity: 0;
+  transform: scale(0.5) !important;
+}
+.g-transition-group-leave-active {
+  position: absolute !important;
+}
+.g-transition-group-move {
+  transition-property: transform !important;
 }
 
 .g-transition-router-view-enter-active,
@@ -103,14 +139,5 @@ export default {
 .g-transition-router-view-leave-to {
   opacity: 0 !important;
   transform: scale(0.9) !important;
-}
-
-.g-transform-application-main-shadow-enter-active,
-.g-transform-application-main-shadow-leave-active {
-  transition-property: opacity !important;
-}
-.g-transform-application-main-shadow-enter-from,
-.g-transform-application-main-shadow-leave-to {
-  opacity: 0 !important;
 }
 </style>

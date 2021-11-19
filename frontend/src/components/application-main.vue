@@ -1,6 +1,6 @@
 <template>
   <div class="g-application-main left-0 position-absolute top-0 w-100">
-    <transition name="g-transform-application-main-aside">
+    <transition name="g-transition-application-main-aside">
       <div
         class="aside bg-primary border-end position-fixed shadow-sm top-0"
         :class="{'state:opened': $store.state.application.mainAsideOpened}"
@@ -39,6 +39,22 @@
                   Dashboard
                 </router-link>
               </li>
+              <li v-if="$store.state.storage.authenticationUser?.UserProfile?.UserProfileType?.name == 'staff'">
+                <router-link
+                  class="link btn btn-sm fs-6 mb-1 rounded text-light"
+                  :to="{name: 'Courses'}"
+                >
+                  Courses
+                </router-link>
+              </li>
+              <li v-if="$store.state.storage.authenticationUser?.UserProfile?.UserProfileType?.name == 'staff'">
+                <router-link
+                  class="link btn btn-sm fs-6 mb-1 rounded text-light"
+                  :to="{name: 'Programs'}"
+                >
+                  Programs
+                </router-link>
+              </li>
               <li>
                 <router-link
                   class="link btn btn-sm fs-6 mb-1 rounded text-light"
@@ -55,23 +71,21 @@
                   Question Banks
                 </router-link>
               </li>
-              <template v-if="$store.state.storage.authenticationUser?.UserProfile?.UserProfileType?.name == 'staff'">
-                <li>
-                  <router-link
-                    class="link btn btn-sm fs-6 mb-1 rounded text-light"
-                    :to="{name: 'Students'}"
-                  >
-                    Students
-                  </router-link>
-                </li>
-              </template>
+              <li v-if="$store.state.storage.authenticationUser?.UserProfile?.UserProfileType?.name == 'staff'">
+                <router-link
+                  class="link btn btn-sm fs-6 mb-1 rounded text-light"
+                  :to="{name: 'Students'}"
+                >
+                  Students
+                </router-link>
+              </li>
             </ul>
           </div>
         </perfect-scrollbar>
       </div>
     </transition>
 
-    <transition name="g-transform-application-main-shadow">
+    <transition name="g-transition-application-main-shadow">
       <div
         class="shadow left-0 position-fixed top-0 w-100"
         @click="$store.commit('SET_APPLICATION_MAIN_ASIDE_OPENED', false);"
@@ -79,7 +93,7 @@
       ></div>
     </transition>
 
-    <transition name="g-transform-application-main-header">
+    <transition name="g-transition-application-main-header">
       <div
         class="header align-items-center d-flex gap-2 border-bottom left-0 px-3 position-fixed shadow-sm top-0 w-100"
         v-if="!$store.state.application.mainHeaderHidden"
@@ -97,16 +111,58 @@
             }"
           ></span>
         </button>
-        <div class="left flex-grow-1 flex-shrink-1"></div>
-        <div class="center flex-grow-1 flex-shrink-1"></div>
-        <div class="right d-flex flex-grow-1 flex-shrink-1 justify-content-end">
-          <button
-            class="btn btn-outline-danger"
-            @click="signOut()"
-            v-if="$store.getters.authenticated"
-          >
-            <span class="feather feather-log-out"></span>
-          </button>
+        <div class="left d-flex gap-2 flex-grow-1 flex-shrink-1 w-100">
+          <div class="logo-container">
+            <img
+              alt=""
+              class="logo h-100 rounded"
+              :src="`${apiUrl}/assets/images/gctu-logo.jpg`"
+            >
+          </div>
+        </div>
+        <div
+          class="right align-items-center d-flex gap-2 flex-grow-1 flex-shrink-1 justify-content-end w-100"
+          v-if="$store.getters.authenticated"
+        >
+          <div
+            class="fst-italic text-secondary"
+            v-text="$store.state.storage.authenticationUser?.index || ''"
+          ></div>
+          <div class="dropdown">
+            <button
+              aria-expanded="false"
+              class="btn btn-primary btn-sm"
+              data-bs-toggle="dropdown"
+              id="g-application-main-header-user-dropdown-toggler"
+              type="button"
+            >
+              <span class="feather feather-more-horizontal"></span>
+            </button>
+            <ul
+              aria-labelledby="g-application-main-header-user-dropdown-toggler"
+              class="dropdown-menu"
+            >
+              <li>
+                <router-link
+                  class="dropdown-item"
+                  :to="{name: 'MyProfile'}"
+                >
+                  My Profile
+                </router-link>
+              </li>
+              <li>
+                <hr class="dropdown-divider">
+              </li>
+              <li>
+                <button
+                  class="dropdown-item"
+                  @click="signOut()"
+                >
+                  Sign Out
+                </button>
+              </li>
+            </ul>
+          </div>
         </div>
       </div>
     </transition>
@@ -240,6 +296,10 @@ export default {
     background-color: rgba(var(--bs-body-bg-rgb), 0.95);
     height: 4rem;
     z-index: 2;
+
+    & > .left > .logo-container {
+      height: 3.5rem;
+    }
   }
 
   & > .content {
