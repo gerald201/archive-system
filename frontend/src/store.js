@@ -1762,7 +1762,7 @@ export default createStore({
 
         if(!eventData) return false;
 
-        if(context.state.storage[eventData.plural] !== null && context.state.storage[eventData.count] !== null && context.state.storage[eventData.plural].lenght >= context.state.storage[eventData.count]) return true;
+        if(context.state.storage[eventData.plural] !== null && context.state.storage[eventData.count] !== null && context.state.storage[eventData.plural].length >= context.state.storage[eventData.count]) return true;
 
         eventData.where.id = {
           $notIn: (context.state.storage[eventData.plural] || [])
@@ -1797,7 +1797,7 @@ export default createStore({
 
         if(!eventData) return false;
 
-        if(context.state.storage[eventData.plural] !== null && context.state.storage[eventData.count] !== null && context.state.storage[eventData.plural].lenght >= context.state.storage[eventData.count]) return true;
+        if(context.state.storage[eventData.plural] !== null && context.state.storage[eventData.count] !== null && context.state.storage[eventData.plural].length >= context.state.storage[eventData.count]) return true;
 
         const paginationParam = {
           page: 1,
@@ -1886,6 +1886,51 @@ export default createStore({
           title: response.data.title,
           message: response.data.message
         });
+        return true;
+      } catch(error) {
+        return false;
+      }
+    },
+    async searchResource(context, payload) {
+      try {
+        if(!context.getters.authenticationAccessTokenAvailable) return false;
+
+        const type = payload?.type ?? '';
+        const searchWhereQuery = payload?.searchWhereQuery ?? null;
+        const eventData = getApiEventData(type);
+
+        if(!eventData || !searchWhereQuery) return false;
+
+        if(context.state.storage[eventData.plural] !== null && context.state.storage[eventData.count] !== null && context.state.storage[eventData.plural].length >= context.state.storage[eventData.count]) return true;
+
+        const paginationParam = {
+          page: 1,
+          size: context.getters.resourcePageSize
+        };
+        const whereParam = {
+          ...searchWhereQuery,
+          ...eventData.where,
+          id: {
+            $notIn: (context.state.storage[eventData.plural] || [])
+              .map(function(item) {
+                return item.id;
+              })
+          }
+        }
+
+        if(context.state.storage.authenticationUser?.UserProfile?.UserProfileType?.name == 'student') whereParam.deletedAt = null;
+
+        const response = await axios.get(`${eventData.url}`, {
+          params: {
+            include: JSON.stringify(eventData.include),
+            pagination: JSON.stringify(paginationParam),
+            where: JSON.stringify(whereParam)
+          }
+        });
+        const resources = response.data.payload[eventData.plural];
+
+        context.commit(`ADD_STORAGE_${eventData.mutation}`, resources);
+        await context.dispatch('requestResourceCount', {type});
         return true;
       } catch(error) {
         return false;

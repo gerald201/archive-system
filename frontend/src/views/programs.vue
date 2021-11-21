@@ -354,13 +354,60 @@
       v-if="$store.state.storage.authenticationUser?.UserProfile.UserProfileType?.name == 'staff'"
     >
       <button
-        class="btn btn-primary"
+        class="btn btn-primary flex-grow-0 flex-shrink-0"
         data-bs-toggle="modal"
         data-bs-target="#g-programs-view-create-modal"
       >
-        New Program
+        Add
         <span class="feather feather-plus"></span>
       </button>
+    </div>
+    <div class="border p-2 mb-3 mt-2 rounded w-100">
+      <div class="fs-5 text-center">Search by...</div>
+      <div class="mb-2 align-items-center d-flex flex-wrap justify-content-center w-100">
+        <div
+          class="form-check form-check-inline form-switch"
+          :key="`search-check-${name}`"
+          v-for="(name, index) in searchFields"
+        >
+          <input
+            :checked="searchFilter & (2 ** index)"
+            class="form-check-input"
+            :disabled="(searchFilter & (2 ** index)) && searchFilter - (2 ** index) <= 0"
+            :id="`g-programs-view-seach-form-${name}-check`"
+            type="checkbox"
+            :value="searchFilter & (2 ** index)"
+            @input="searchFilter += ((searchFilter & (2 ** index)) ? -1 : 1) * (2 ** index)"
+          >
+          <label
+            class="form-check-label"
+            :for="`g-programs-view-seach-form-${name}-check`"
+            v-text="name
+              .replace(/[A-Z]/g, function(match) {
+                return ` ${match}`;
+              })
+              .replace(/^[a-z]/, function(match) {
+                return match.toUpperCase();
+              })"
+          ></label>
+        </div>
+      </div>
+      <div class="input-group">
+        <input
+          aria-label="Search"
+          aria-describedby="g-programs-view-search-form-submit-button"
+          class="form-control"
+          placeholder="Search..."
+          type="text"
+        >
+        <button
+          class="btn btn-primary"
+          type="button"
+          id="g-programs-view-search-form-submit-button"
+        >
+          <span class="feather feather-search"></span>
+        </button>
+      </div>
     </div>
     <transition name="g-transition">
       <div
@@ -612,9 +659,15 @@ export default {
     const destroyModalBsModal = ref(null);
     const destroyModalProcessing = ref(false); 
     const destroyModalProgramId = ref(null);
+    const inSearchMode = ref(false);
     const restoreModalBsModal = ref(null);
     const restoreModalProcessing = ref(false);
     const restoreModalProgramId = ref(null);
+    const searchFields = ref(['id', 'name']);
+    const searchFilter = ref(1);
+    const searching = ref(false);
+    const searchQuery = ref('');
+    const searchQueryErrors = ref([]);
     const updateModalBsModal = ref(null);
     const updateModalFormData = reactive({
       name: null,
@@ -645,6 +698,20 @@ export default {
 
           return index >= lowerLimit && index < upperLimit;
         });
+    });
+    const searchWhereQuery = computed(function() {
+      return {
+        $or: {
+          ...searchFields.value
+            .filter(function(name, index) {
+              return (2 ** index) & searchFilter.value;
+            })
+            .reduce(function(accumulator, current) {
+              accumulator[current] = {$like: `%${searchQuery.value}%`};
+              return accumulator;
+            }, {})
+        }
+      }
     });
     const totalPages = computed(function() {
       return ($store.state.storage.programs?.length || 0) >= $store.state.storage.programCount ? Math.ceil(($store.state.storage.programs?.length || 0) / $store.getters.resourcePageSize) : (Math.floor(($store.state.storage.programs?.length || 0) / $store.getters.resourcePageSize) + 1);
@@ -775,6 +842,29 @@ export default {
       restoreModalProcessing.value = false;
     }
 
+    async function submitSearch() {
+      if(searching.value) return;
+
+      const validated = validate({searchQuery: searchQuery.value}, {searchQuery: 'string|empty:false'});
+
+      if(validated !== true) {
+        searchQueryErrors.value = validated;
+        return;
+      }
+
+      searching.value = true;
+
+      const searchSuccessful = await $store.dispatch('searchResource', {
+        type: 'programs',
+        searchWhereQuery: searchWhereQuery.value
+      });
+
+      if(searchSuccessful) searchQueryErrors.value = [];
+
+      searching.value = false;
+      inSearchMode.value = true;
+    }
+
     async function submitUpdateModalForm() {
       if(isNaN(parseInt(updateModalProgramId.value))) {
         updateModalProcessing.value = false;
@@ -892,7 +982,7 @@ export default {
       if(value < 1) currentPage.value == 1;
       else if(value > totalPages.value) currentPage.value = totalPages.value;
       else if(currentPageItems.value.length < $store.getters.resourcePageSize && ($store.state.storage.programs || []).length < $store.state.storage.programCount) $store.dispatch('requestResource', {type: 'programs'});
-    })
+    });
 
     watchEffect(function() {
       if(createModalRef.value) {
@@ -960,6 +1050,7 @@ export default {
       destroyModalProcessing,
       destroyModalProgramId,
       destroyModalRef,
+      inSearchMode,
       moment,
       resetCreateModalForm,
       resetUpdateModalForm,
@@ -967,9 +1058,16 @@ export default {
       restoreModalProcessing,
       restoreModalProgramId,
       restoreModalRef,
+      searchFields,
+      searchFilter,
+      searching,
+      searchQuery,
+      searchQueryErrors,
+      searchWhereQuery,
       submitCreateModalForm,
       submitDestroyModalForm,
       submitRestoreModalForm,
+      submitSearch,
       submitUpdateModalForm,
       totalPages,
       updateModalBsModal,
