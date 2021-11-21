@@ -53,12 +53,12 @@ async function createJWTToken(type, userId) {
 
     if(!user) return null;
 
-    await models[keyData[type].model].update({revokedAt: moment().format()}, {
-      where: {
-        revokedAt: null,
-        userId
-      }
-    });
+    // await models[keyData[type].model].update({revokedAt: moment().format()}, {
+    //   where: {
+    //     revokedAt: null,
+    //     userId
+    //   }
+    // });
 
     const token = await models[keyData[type].model].create({
       expiresAt: moment().format(),
