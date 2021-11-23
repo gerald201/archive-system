@@ -124,7 +124,6 @@ function create() {
           payload: {project}
         });
       } catch(error) {
-        console.log(error);
         return next({
           name: 'ServerError',
           error
@@ -257,7 +256,6 @@ function index() {
           payload: {projects}
         });
       } catch(error) {
-        console.log(error);
         return next({
           name: 'ServerError',
           error

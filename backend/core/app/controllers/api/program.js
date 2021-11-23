@@ -2,6 +2,7 @@ const models = require('../../../../database/models');
 const authenticationGuard = require('../../guards/authentication');
 const roleGuard = require('../../guards/role');
 const validationGuard = require('../../guards/validation');
+const util = require('util');
 
 function count() {
   return [
@@ -135,6 +136,8 @@ function index() {
 
         if(offsetQueryData !== null) databaseQuery.offset = offsetQueryData;
 
+        console.log('WHERE_QUERY_DATA', util.inspect(whereQueryData, false, 99, true));
+
         const programs = await models.Program.findAll(databaseQuery);
 
         return response.respond({
@@ -142,6 +145,7 @@ function index() {
           payload: {programs}
         });
       } catch(error) {
+        console.log(error);
         return next({
           name: 'ServerError',
           error

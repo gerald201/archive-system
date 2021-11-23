@@ -1694,6 +1694,62 @@ export default createStore({
         return false;
       }
     },
+    async recoverResource(context, payload) {
+      try {
+        if(!context.getters.authenticationAccessTokenAvailable) return false;
+
+        const type = payload?.type ?? '';
+        const eventData = getApiEventData(type);
+
+        if(!eventData) return false;
+
+        if(context.state.storage[eventData.plural] !== null && context.state.storage[eventData.count] !== null && context.state.storage[eventData.plural].length >= context.state.storage[eventData.count]) return true;
+
+        const lowerLimit = (context.state.storage[eventData.plural] || [])
+          .reduce(function(accumulator, current, index) {
+            if(index == 0) return current.id;
+
+            return accumulator < current.id ? accumulator : current.id;
+          }, 0);
+        const upperLimit = (context.state.storage[eventData.plural] || [])
+          .reduce(function(accumulator, current, index) {
+            if(index == 0) return current.id;
+
+            return accumulator > current.id ? accumulator : current.id;
+          }, 0);
+
+        const paginationParam = {
+          page: 1,
+          size: context.getters.resourcePageSize
+        };
+        
+        eventData.where.id = {
+          $notIn: (context.state.storage[eventData.plural] || [])
+            .map(function(item) {
+              return item.id;
+            }),
+          $gte: lowerLimit,
+          $lte: upperLimit
+        };
+
+        if(context.state.storage.authenticationUser?.UserProfile?.UserProfileType?.name == 'student') eventData.where.deletedAt = null;
+
+        const response = await axios.get(`${eventData.url}`, {
+          params: {
+            include: JSON.stringify(eventData.include),
+            pagination: JSON.stringify(paginationParam),
+            where: JSON.stringify(eventData.where)
+          }
+        });
+        const resources = response.data.payload[eventData.plural];
+
+        context.commit(`ADD_STORAGE_${eventData.mutation}`, resources);
+        await context.dispatch('requestResourceCount', {type});
+        return true;
+      } catch(error) {
+        return false;
+      }
+    },
     async refreshAllResource(context, payload) {
       try {
         if(!context.getters.authenticationAccessTokenAvailable) return false;

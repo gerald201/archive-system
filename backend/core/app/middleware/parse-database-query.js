@@ -77,19 +77,59 @@ function parseOrder(data) {
   return result.length ? result : null;
 }
 
-function parseWhere(data) {
-  if(data?.constructor?.name?.toLowerCase() != 'object') return null;
+function parseSequelizeFunction(data) {
+  if(typeof data != 'string' || !(/^#\w+/.test(data))) return data;
 
+  const functionName = data
+    .split(/\s*\|\s*/)[0]
+    .replace(/^#/, '');
+
+  if(typeof models.connection[functionName] != 'function') return data;
+
+  console.log('CONNECTION_FUNCTION_DATA', data);
+  console.log('CONNECTION_FUNCTION', models.connection[functionName]);
+  console.log('CONNECTION_FUNCTION_ARGS', data.replace(/^#\w+\s*\|\s*/, ''));
+
+  const args = JSON.parse(data.replace(/^#\w+\s*\|\s*/, ''))
+    .map(function(arg) {
+      console.log('SEQUELIZE_FUNCTION_ARG', arg, parseWhere(arg));
+
+      if(Array.isArray(arg) || arg?.constructor?.name?.toLowerCase() == 'object') return parseWhere(arg);
+
+      return parseSequelizeFunction(arg);
+    });
+
+  return models.connection[functionName](...args);
+}
+
+function parseWhere(data) {
   const result = {};
 
   for(const key in data) {
-    const specialKeyCheck = /^\$.+$/.test(key);
-    const specialKey = specialKeyCheck ? key.replace('$', '') : key;
-    const objectCheck = data[key] && typeof data[key] == 'object' && !Array.isArray(data[key]);
+    const opKey = /^\$.+$/.test(key) ? key.replace('$', '') : '';
 
-    if(specialKeyCheck && specialKey in models.Sequelize.Op) result[models.Sequelize.Op[specialKey]] = objectCheck ? parseWhere(data[key]) : data[key];
-    else result[key] = objectCheck ? parseWhere(data[key]) : data[key];
+    if(Array.isArray(data[key])) {
+      if(opKey in models.Sequelize.Op) {
+        result[models.Sequelize.Op[opKey]] = data[key]
+          .map(function(d) {
+            return d?.constructor?.name?.toLowerCase() == 'object' ? parseWhere(d) : parseSequelizeFunction(d);
+          });
+      } else {
+        result[key] = data[key]
+          .map(function(d) {
+            return d?.constructor?.name?.toLowerCase() == 'object' ? parseWhere(d) : parseSequelizeFunction(d);
+          });
+      }
+    } else if(data[key]?.constructor?.name?.toLowerCase() == 'object') {
+      if(opKey in models.Sequelize.Op) result[models.Sequelize.Op[opKey]] = parseWhere(data[key]);
+      else result[key] = parseWhere(data[key]);
+    } else {
+      if(opKey in models.Sequelize.Op) result[models.Sequelize.Op[opKey]] = parseSequelizeFunction(data[key]);
+      else result[key] = parseSequelizeFunction(data[key]);
+    }
   }
+
+  console.log('PARSE_WHERE', result, data);
 
   return result;
 }
@@ -99,7 +139,11 @@ function main() {
     function(request, response, next) {
       request.parseDatabaseQuery = function(type, jsonString) {
         try {
+          if(type == 'where') console.log('PARSE_QUERY_RAW', jsonString)
+
           const data = JSON.parse(jsonString);
+
+          console.log('PARSE_QUERY_PARSED', type, data)
 
           if(type == 'attributes') return parseAttributes(data);
           
@@ -111,6 +155,7 @@ function main() {
 
           return null;
         } catch(error) {
+          if(type == 'where') console.log('PARSE_ERROR', type, error)
           return null;
         }
       }

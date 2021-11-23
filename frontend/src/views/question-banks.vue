@@ -5,8 +5,6 @@
     </h3>
     <teleport to="body">
       <div
-        aria-labelledby="g-question-banks-view-create-modal-label"
-        aria-hidden="true"
         class="modal fade"
         data-bs-backdrop="static"
         data-bs-keyboard="false"
@@ -25,7 +23,6 @@
                 Add a new question bank.
               </h5>
               <button
-                aria-label="Close"
                 class="btn-close"
                 data-bs-dismiss="modal"
                 :disabled="createModalProcessing"
@@ -38,7 +35,6 @@
               >
                 <div class="form-floating mb-3">
                   <select
-                    aria-label="Course"
                     class="form-select"
                     :class="{'is-invalid': createModalFormDataStates.courseId.errors.length}"
                     :disabled="createModalProcessing"
@@ -118,9 +114,7 @@
                 type="submit"
               >
                 <span
-                  aria-hidden="true"
                   class="spinner-grow spinner-grow-sm"
-                  role="status"
                   v-if="createModalProcessing"
                 ></span>
                 Create
@@ -130,8 +124,6 @@
         </div>
       </div>
       <div
-        aria-labelledby="g-question-banks-view-destroy-modal-label"
-        aria-hidden="true"
         class="modal fade"
         data-bs-backdrop="static"
         data-bs-keyboard="false"
@@ -149,7 +141,6 @@
                 v-text="`Delete question bank '#${destroyModalQuestionBankId}'.`"
               ></h5>
               <button
-                aria-label="Close"
                 class="btn-close"
                 data-bs-dismiss="modal"
                 :disabled="destroyModalProcessing"
@@ -175,9 +166,7 @@
                 @click="submitDestroyModalForm();"
               >
                 <span
-                  aria-hidden="true"
                   class="spinner-grow spinner-grow-sm"
-                  role="status"
                   v-if="destroyModalProcessing"
                 ></span>
                 Destroy
@@ -187,8 +176,6 @@
         </div>
       </div>
       <div
-        aria-labelledby="g-question-banks-view-restore-modal-label"
-        aria-hidden="true"
         class="modal fade"
         data-bs-backdrop="static"
         data-bs-keyboard="false"
@@ -206,8 +193,6 @@
                 v-text="`Delete question bank '#${restoreModalQuestionBankId}'.`"
               ></h5>
               <button
-                aria-label="Close"
-                class="btn-close"
                 data-bs-dismiss="modal"
                 :disabled="restoreModalProcessing"
               ></button>
@@ -232,9 +217,7 @@
                 @click="submitRestoreModalForm();"
               >
                 <span
-                  aria-hidden="true"
                   class="spinner-grow spinner-grow-sm"
-                  role="status"
                   v-if="restoreModalProcessing"
                 ></span>
                 Restore
@@ -244,8 +227,6 @@
         </div>
       </div>
       <div
-        aria-labelledby="g-question-banks-view-update-modal-label"
-        aria-hidden="true"
         class="modal fade"
         data-bs-backdrop="static"
         data-bs-keyboard="false"
@@ -263,8 +244,6 @@
                 v-text="`Edit question bank '#${updateModalQuestionBankId}'.`"
               ></h5>
               <button
-                aria-label="Close"
-                class="btn-close"
                 data-bs-dismiss="modal"
                 :disabled="updateModalProcessing"
               ></button>
@@ -276,8 +255,6 @@
               >
                 <div class="form-floating mb-3">
                   <select
-                    aria-label="Course"
-                    class="form-select"
                     :class="{'is-invalid': updateModalFormDataStates.courseId.errors.length}"
                     :disabled="updateModalProcessing"
                     id="g-question-banks-view-update-modal-form-course-id-field"
@@ -356,9 +333,7 @@
                 type="submit"
               >
                 <span
-                  aria-hidden="true"
                   class="spinner-grow spinner-grow-sm"
-                  role="status"
                   v-if="updateModalProcessing"
                 ></span>
                 Update
@@ -368,8 +343,6 @@
         </div>
       </div>
       <div
-        aria-labelledby="g-question-banks-view-view-modal-label"
-        aria-hidden="true"
         class="modal fade"
         data-bs-backdrop="static"
         data-bs-keyboard="false"
@@ -386,7 +359,6 @@
                 v-text="`Viewing file for question bank '#${viewModalQuestionBankId}'.`"
               ></h5>
               <button
-                aria-label="Close"
                 class="btn-close"
                 data-bs-dismiss="modal"
               ></button>
@@ -414,9 +386,7 @@
                 v-if="$store.state.storage.authenticationUser?.UserProfile.UserProfileType?.name == 'student'"
               >
                 <span
-                  aria-hidden="true"
                   class="spinner-grow spinner-grow-sm"
-                  role="status"
                   v-if="downloading"
                 ></span>
                 Download
@@ -435,20 +405,114 @@
         data-bs-toggle="modal"
         data-bs-target="#g-question-banks-view-create-modal"
       >
-        New Question Bank
+        Add
         <span class="feather feather-plus"></span>
       </button>
     </div>
+    <div class="border p-2 mb-3 mt-2 rounded w-100">
+      <h5 class="text-center">
+        Search by...
+      </h5>
+      <div class="mb-2 align-items-center d-flex flex-wrap justify-content-center w-100">
+        <div
+          class="form-check form-check-inline form-switch"
+          :key="`search-check-${name}`"
+          v-for="(name, index) in searchFields"
+        >
+          <input
+            :checked="searchFilter & (2 ** index)"
+            class="form-check-input"
+            :disabled="(searchFilter & (2 ** index)) && searchFilter - (2 ** index) <= 0 || searching"
+            :id="`g-programs-view-seach-form-${name}-check`"
+            type="checkbox"
+            :value="searchFilter & (2 ** index)"
+            @input="searchFilter += ((searchFilter & (2 ** index)) ? -1 : 1) * (2 ** index)"
+          >
+          <label
+            class="form-check-label"
+            :for="`g-programs-view-seach-form-${name}-check`"
+            v-text="name
+              .replace(/[A-Z]/g, function(match) {
+                return ` ${match}`;
+              })
+              .replace(/^[a-z]/, function(match) {
+                return match.toUpperCase();
+              })"
+          ></label>
+        </div>
+      </div>
+      <div class="input-group">
+        <input
+          class="form-control"
+          :class="{'is-invalid': searchQueryErrors.length}"
+          :disabled="searching"
+          placeholder="Search..."
+          type="text"
+          @input="validateSearch();"
+          @keydown.enter="submitSearch();"
+          v-model="searchQuery"
+        >
+        <transition name="g-transition">
+          <button
+            class="btn btn-secondary"
+            :disabled="searching"
+            title="Cancel Search"
+            type="button"
+            @click="
+              currentSearchQuery = '';
+              inSearchMode = false;
+              searchQuery = '';
+              searchQueryErrors = [];
+            "
+            v-if="inSearchMode || searchQueryErrors.length || searchQuery"
+          >
+            <span class="feather feather-x"></span>
+          </button>
+        </transition>
+        <button
+          class="btn btn-primary"
+          title="Search"
+          type="button"
+          @click="submitSearch();"
+        >
+          <span
+            class="spinner-grow spinner-sm"
+            v-if="searching"
+          ></span>
+          <span class="feather feather-search"></span>
+        </button>
+      </div>
+      <div
+        class="invalid-feedback"
+        v-if="searchQueryErrors.length"
+      >
+        <div
+          :key="`error-${error.type}`"
+          v-for="error in searchQueryErrors"
+        >
+          <b>{{error.type}}:</b>
+          {{error.message}}
+        </div>
+      </div>
+    </div>
+    <transition name="g-transition">
+      <h5
+        class="text-center text-info"
+        v-if="inSearchMode"
+      >
+        Showing search results
+      </h5>
+    </transition>
     <transition name="g-transition">
       <div
         class="align-items-center d-flex justify-content-center p-2 w-100"
-        v-if="$store.state.storage.questionBanks === null"
+        v-if="$store.state.storage.questionBanks === null || totalPages > 1 && currentPage == totalPages && !currentPageItems.length || searching"
       >
-        <div class="spinner-grow text-primary" role="status"></div>
+        <span class="spinner-grow text-primary"></span>
       </div>
       <div
         class="p-2 text-secondary"
-        v-else-if="$store.state.storage.questionBankCount === 0"
+        v-else-if="!currentPageItems.length"
       >
         No question banks to show!
       </div>
@@ -465,33 +529,34 @@
             :key="`question-bank-${questionBank.id}`"
             v-for="questionBank in currentPageItems"
           >
-            <div class="banner align-items-center d-flex justify-content-between w-100">
-              <div class="data align-items-center d-flex gap-1">
+            <div class="banner align-items-center d-flex flex-column flex-md-row gap-1 gap-md-3 justify-content-between w-100">
+              <div class="data align-items-center d-flex flex-grow-1 flex-shrink-1 gap-1 w-100">
                 <button
-                  :aria-controls="`g-question-banks-view-question-bank-${questionBank.id}-data-collapse`"
-                  aria-expanded="false"
-                  class="toggler btn btn-sm"
+                  class="toggler btn btn-sm flex-grow-0 flex-shrink-0"
                   :data-bs-target="`#g-question-banks-view-question-bank-${questionBank.id}-data-collapse`"
                   data-bs-toggle="collapse"
                 >
                   <span class="icon d-inline-block feather feather-chevron-right"></span>
                 </button>
                 <div
-                  class="fs-5 fw-bold text-primary"
+                  class="flex-grow-0 flex-shrink-0 fs-5 fw-bold text-primary"
                   v-text="`#${questionBank.id}`"
                 ></div>
-                <div v-text="questionBank.Course.name"></div>
-                <div class="fst-italic text-secondary">
+                <div
+                  class="flex-grow-0 flex-shrink-1"
+                  v-text="questionBank.Course.name"
+                ></div>
+                <div class="flex-grow-0 flex-shrink-1 fst-italic text-secondary">
                   <small v-text="`Level ${questionBank.Course.Level.name}`"></small>
                 </div>
                 <transition name="g-transition">
                   <span
-                    class="feather feather-slash text-danger"
+                    class="feather feather-slash flex-grow-0 flex-shrink-0 text-danger"
                     v-if="questionBank.deletedAt"
                   ></span>
                 </transition>
               </div>
-              <div class="align-items-center d-flex gap-1 position-relative">
+              <div class="actions align-items-center d-flex flex-grow-0 flex-shrink-0 gap-1 position-relative">
                 <transition-group
                   appear
                   name="g-transition-group"
@@ -625,9 +690,8 @@
     </transition>
     <transition name="g-transition">
       <nav
-        aria-label="Question banks view data table pagination"
         class="align-items-center d-flex justify-content-center py-2 w-100"
-        v-if="$store.state.storage.questionBanks && $store.state.storage.questionBankCount !== null && $store.state.storage.questionBankCount > $store.getters.resourcePageSize && currentPageItems.length >= $store.getters.resourcePageSize"
+        v-if="$store.state.storage.questionBanks && $store.state.storage.questionBankCount !== null && $store.state.storage.questionBankCount > $store.getters.resourcePageSize && totalPages > 1"
       >
         <ul class="pagination">
           <li
@@ -635,14 +699,10 @@
             :class="{disabled: currentPage == 1}"
           >
             <button
-              aria-label="Previous"
               class="page-link"
               @click="currentPage--;"
             >
-              <span
-                aria-hidden="true"
-                class="feather feather-chevron-left"
-              ></span>
+              <span class="feather feather-chevron-left"></span>
             </button>
           </li>
           <li
@@ -662,14 +722,10 @@
             :class="{disabled: currentPage == totalPages}"
           >
             <button
-              aria-label="Next"
               class="page-link"
               @click="currentPage++;"
             >
-              <span
-                aria-hidden="true"
-                class="feather feather-chevron-right"
-              ></span>
+              <span class="feather feather-chevron-right"></span>
             </button>
           </li>
         </ul>
@@ -736,13 +792,29 @@ export default {
     const createModalProcessing = ref(false);
     const createModalResetting = ref(false);
     const currentPage = ref(1);
+    const currentSearchQuery = ref('');
     const destroyModalBsModal = ref(null);
     const destroyModalQuestionBankId = ref(null);
     const destroyModalProcessing = ref(false); 
     const downloading = ref(false);
+    const inSearchMode = ref(false);
     const restoreModalBsModal = ref(null);
     const restoreModalQuestionBankId = ref(null);
     const restoreModalProcessing = ref(false);
+    const searchFields = ref([
+      'id',
+      'course',
+      'level',
+      'program',
+      'semester'
+    ]);
+    const searchFilter = ref(searchFields.value
+      .reduce(function(accumulator, current, index) {
+        return accumulator + (2 ** index);
+      }, 0));
+    const searching = ref(false);
+    const searchQuery = ref('');
+    const searchQueryErrors = ref([]);
     const updateModalBsModal = ref(null);
     const updateModalFormData = reactive({
       courseId: null,
@@ -767,7 +839,27 @@ export default {
     const currentPageItems = computed(function() {
       return ($store.state.storage.questionBanks || [])
         .filter(function(questionBank) {
-          return $store.state.storage.authenticationUser?.UserProfile.UserProfileType?.name == 'staff' || !questionBank.deletedAt;
+          if(inSearchMode.value) {
+            return searchFields.value
+              .filter(function(searchField, index) {
+                return (2 ** index) & searchFilter.value;
+              })
+              .some(function(searchField) {
+                const regExp = new RegExp(currentSearchQuery.value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+
+                if(searchField.includes('course') || searchField.includes('level') || searchField.includes('program') || searchField.includes('semester')) {
+                  const key = searchField
+                    .replace(/^[a-z]/, function(match) {
+                      return match.toUpperCase();
+                    });
+                  const key2 = 'name';
+                  
+                  return regExp.test(searchField.includes('course') ? questionBank[key][key2] : questionBank.Course[key][key2]);
+                }
+                else return regExp.test(questionBank[searchField]);
+              }) && ( $store.state.storage.authenticationUser?.UserProfile.UserProfileType?.name == 'staff' || !questionBank.deletedAt);
+          }
+          else return $store.state.storage.authenticationUser?.UserProfile.UserProfileType?.name == 'staff' || !questionBank.deletedAt;
         })
         .filter(function(questionBank, index) {
           const lowerLimit = (currentPage.value - 1) * $store.getters.resourcePageSize;
@@ -776,10 +868,75 @@ export default {
           return index >= lowerLimit && index < upperLimit;
         });
     });
+    const searchWhereQuery = computed(function() {
+      return {
+        $or: [
+          ...searchFields.value
+            .filter(function(searchField, index) {
+              return (2 ** index) & searchFilter.value;
+            })
+            .map(function(searchField) {
+              if(searchField.includes('course') || searchField.includes('level') || searchField.includes('program') || searchField.includes('semester')) {
+                const key = searchField
+                  .replace(/^[a-z]/, function(match) {
+                    return match.toUpperCase();
+                  });
+                const key2 = 'name';
+
+                if(searchField.includes('course')) {
+                  return `#where | ${JSON.stringify([
+                    `#fn | ${JSON.stringify([
+                      'lower',
+                      `#col | ${JSON.stringify([key + '.' + key2])}`
+                    ])}`,
+                    {$like: `%${currentSearchQuery.value.toLowerCase()}%`}
+                  ])}`;
+                } else {
+                  return `#where | ${JSON.stringify([
+                    `#fn | ${JSON.stringify([
+                      'lower',
+                      `#col | ${JSON.stringify(['Course.' + key + '.' + key2])}`
+                    ])}`,
+                    {$like: `%${currentSearchQuery.value.toLowerCase()}%`}
+                  ])}`;
+                }
+              } else {
+                return `#where | ${JSON.stringify([
+                  `#fn | ${JSON.stringify([
+                    'lower',
+                    `#col | ${JSON.stringify([searchField])}`
+                  ])}`,
+                  {$like: `%${currentSearchQuery.value.toLowerCase()}%`}
+                ])}`;
+              }
+            })
+        ]
+      }
+    });
     const totalPages = computed(function() {
       const availableQuestionBankCount = ($store.state.storage.questionBanks || [])
         .filter(function(questionBank) {
-          return $store.state.storage.authenticationUser?.UserProfile.UserProfileType?.name == 'staff' || !questionBank.deletedAt;
+          if(inSearchMode.value) {
+            return searchFields.value
+              .filter(function(searchField, index) {
+                return (2 ** index) & searchFilter.value;
+              })
+              .some(function(searchField) {
+                const regExp = new RegExp(currentSearchQuery.value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+                
+                if(searchField.includes('course') || searchField.includes('level') || searchField.includes('program') || searchField.includes('semester')) {
+                  const key = searchField
+                    .replace(/^[a-z]/, function(match) {
+                      return match.toUpperCase();
+                    });
+                  const key2 = 'name';
+                  
+                  return regExp.test(searchField.includes('course') ? questionBank[key][key2] : questionBank.Course[key][key2]);
+                }
+                else return regExp.test(questionBank[searchField]);
+              }) && ( $store.state.storage.authenticationUser?.UserProfile.UserProfileType?.name == 'staff' || !questionBank.deletedAt);
+          }
+          else return $store.state.storage.authenticationUser?.UserProfile.UserProfileType?.name == 'staff' || !questionBank.deletedAt;
         }).length;
 
       return availableQuestionBankCount >= $store.state.storage.questionBankCount ? Math.ceil(availableQuestionBankCount / $store.getters.resourcePageSize) : (Math.floor(availableQuestionBankCount / $store.getters.resourcePageSize) + 1);
@@ -943,6 +1100,55 @@ export default {
       restoreModalProcessing.value = false;
     }
 
+    async function submitSearch() {
+      if(searching.value) return;
+
+      if(!validateSearch()) {
+        searching.value = false;
+        return;
+      }
+      
+      searching.value = true;
+      currentSearchQuery.value = searchQuery.value;
+
+      const foundItems = ($store.state.storage.questionBanks || [])
+        .filter(function(questionBank) {
+          return searchFields.value
+            .filter(function(searchField, index) {
+              return (2 ** index) & searchFilter.value;
+            })
+            .some(function(searchField) {
+              const regExp = new RegExp(currentSearchQuery.value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+              
+              if(searchField.includes('course') || searchField.includes('level') || searchField.includes('questionBank') || searchField.includes('semester')) {
+                const key = searchField
+                  .replace(/^[a-z]/, function(match) {
+                    return match.toUpperCase();
+                  });
+                const key2 = 'name';
+                
+                return regExp.test(searchField.includes('course') ? questionBank[key][key2] : questionBank.Course[key][key2]);
+              }
+              else return regExp.test(questionBank[searchField]);
+            }) && ( $store.state.storage.authenticationUser?.UserProfile.UserProfileType?.name == 'staff' || !questionBank.deletedAt);
+        });
+
+      if(foundItems.length < $store.getters.resourcePageSize) {
+        const searchSuccessful = await $store.dispatch('searchResource', {
+          type: 'question-banks',
+          searchWhereQuery: searchWhereQuery.value
+        });
+
+        if(searchSuccessful) searchQueryErrors.value = [];
+      }
+      else searchQueryErrors.value = [];
+
+      searching.value = false;
+      
+      if(inSearchMode.value) currentPage.value = 1;
+      else inSearchMode.value = true;
+    }
+
     async function submitUpdateModalForm() {
       if(isNaN(parseInt(updateModalQuestionBankId.value))) {
         updateModalProcessing.value = false;
@@ -1003,6 +1209,13 @@ export default {
       return false;
     }
 
+    function validateSearch() {
+      const validated = validate({searchQuery: searchQuery.value}, {searchQuery: 'string|empty:false'});
+
+      searchQueryErrors.value = validated;
+      return validated === true;
+    }
+
     function validateUpdateModalForm() {
       const validated = validate(updateModalFormData, updateModalValidationSchema);
 
@@ -1060,7 +1273,11 @@ export default {
       if(value < 1) currentPage.value == 1;
       else if(value > totalPages.value) currentPage.value = totalPages.value;
       else if(currentPageItems.value.length < $store.getters.resourcePageSize && ($store.state.storage.courses || []).length < $store.state.storage.courseCount) $store.dispatch('requestResource', {type: 'question-banks'});
-    })
+    });
+
+    watch(inSearchMode, function() {
+      currentPage.value = 1;
+    });
 
     watchEffect(function() {
       if(createModalRef.value) {
@@ -1142,12 +1359,14 @@ export default {
       createModalRef,
       currentPage,
       currentPageItems,
+      currentSearchQuery,
       destroyModalBsModal,
       destroyModalProcessing,
       destroyModalQuestionBankId,
       destroyModalRef,
       downloading,
       downloadViewModalFile,
+      inSearchMode,
       moment,
       resetCreateModalForm,
       resetUpdateModalForm,
@@ -1155,9 +1374,16 @@ export default {
       restoreModalProcessing,
       restoreModalQuestionBankId,
       restoreModalRef,
+      searchFields,
+      searchFilter,
+      searching,
+      searchQuery,
+      searchQueryErrors,
+      searchWhereQuery,
       submitCreateModalForm,
       submitDestroyModalForm,
       submitRestoreModalForm,
+      submitSearch,
       submitUpdateModalForm,
       totalPages,
       updateModalBsModal,
@@ -1169,6 +1395,7 @@ export default {
       updateModalResetting,
       updateModalRef,
       validateCreateModalForm,
+      validateSearch,
       validateUpdateModalForm,
       viewModalBsModal,
       viewModalFileUrl,

@@ -113,11 +113,16 @@
         </button>
         <div class="left d-flex gap-2 flex-grow-1 flex-shrink-1 w-100">
           <div class="logo-container">
-            <img
-              alt=""
-              class="logo h-100 rounded"
-              :src="`${apiUrl}/assets/images/gctu-logo.jpg`"
+            <router-link
+              class="h-100"
+              :to="{name: 'Home'}"
             >
+              <img
+                alt=""
+                class="logo h-100 rounded"
+                :src="`${apiUrl}/assets/images/gctu-logo.jpg`"
+              >
+            </router-link>
           </div>
         </div>
         <div
