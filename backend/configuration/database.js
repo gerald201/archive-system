@@ -4,10 +4,10 @@ dotenv.config();
 
 module.exports = {
   development: {
-    username: 'exlJCNwlQo',
-    password: 'oTYpE3k3ca',
-    database: 'exlJCNwlQo',
-    host: '37.59.55.185',
+    username: 'root',
+    password: '',
+    database: 'archive_system',
+    host: 'localhost',
     dialect: 'mysql'
   },
   production: {
